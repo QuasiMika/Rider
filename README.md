@@ -83,6 +83,101 @@ npm run preview
 ```
 
 
+---
+
+## Supabase Auth Setup
+
+Email + password auth using Supabase. A Postgres trigger creates a `user_profile` row for every new user based on the signup metadata. Reference: [Managing user data](https://supabase.com/docs/guides/auth/managing-user-data?queryGroups=language&language=js).
+
+### Database schema
+
+```sql
+CREATE TYPE user_role AS ENUM ('driver', 'customer');
+
+CREATE TABLE public.user_profile (
+  user_id           uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at        timestamptz NOT NULL DEFAULT now(),
+  updated_at        timestamptz NOT NULL DEFAULT now(),
+  first_name        varchar,
+  family_name       varchar,
+  role              user_role NOT NULL DEFAULT 'customer',
+  currently_working boolean NOT NULL DEFAULT false
+);
+```
+
+### Trigger — auto-creates `user_profile` on signup
+
+Reads `first_name`, `family_name`, and `role` from `raw_user_meta_data` that the frontend passes in `signUp({ options: { data } })`.
+
+```sql
+CREATE OR REPLACE FUNCTION public.insert_user_profile()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+BEGIN
+  INSERT INTO public.user_profile (user_id, first_name, family_name, role, currently_working)
+  VALUES (
+    NEW.id,
+    NEW.raw_user_meta_data->>'first_name',
+    NEW.raw_user_meta_data->>'family_name',
+    COALESCE(
+      (NEW.raw_user_meta_data->>'role')::public.user_role,
+      'customer'::public.user_role
+    ),
+    false
+  );
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.insert_user_profile();
+```
+
+### Row Level Security
+
+```sql
+CREATE POLICY "Users can read own profile"
+ON public.user_profile FOR SELECT TO authenticated
+USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own profile"
+ON public.user_profile FOR UPDATE TO authenticated
+USING (auth.uid() = user_id)
+WITH CHECK (auth.uid() = user_id);
+```
+
+### Supabase dashboard settings
+
+- **Authentication → Providers → Email**: enabled
+- **Authentication → Sign In / Providers → Confirm email**: disabled (for local dev — users are signed in immediately after signup)
+
+### Frontend structure
+
+| Path | Purpose |
+|------|---------|
+| `src/utils/supabase.ts` | Supabase client initialization |
+| `src/auth/AuthUser.tsx` | `AuthProvider` + `useAuth()` hook — wraps `signIn`, `signUp`, `signOut` and exposes `user` / `session` |
+| `src/pages/Login.tsx` | Email + password login form |
+| `src/pages/Register.tsx` | Registration form with first name, last name, role (customer / driver) |
+| `src/pages/Protected.tsx` | Example protected page that reads the logged-in user's `user_profile` |
+| `src/App.tsx` | Routes + inline `ProtectedRoute` that redirects to `/login` when no user |
+
+The signup call passes profile fields as user metadata so the trigger can read them:
+
+```ts
+await supabase.auth.signUp({
+  email,
+  password,
+  options: { data: { first_name, family_name, role } },
+})
+```
+
+---
+
 ## Expanding the ESLint configuration
 
 If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
