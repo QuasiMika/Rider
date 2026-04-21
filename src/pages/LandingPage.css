@@ -42,7 +42,10 @@
   color: #15803d;
   border: 1.5px solid #15803d;
 }
-[data-theme='dark'] .lp-btn--outline,
+[data-theme='dark'] .lp-btn--outline {
+  color: #4ade80;
+  border-color: #4ade80;
+}
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) .lp-btn--outline {
     color: #4ade80;

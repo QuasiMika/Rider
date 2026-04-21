@@ -46,7 +46,6 @@
   color-scheme: light;
 }
 
-[data-theme='dark'],
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     --text: #9ca3af;
