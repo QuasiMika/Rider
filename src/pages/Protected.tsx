@@ -73,7 +73,6 @@ export default function Protected() {
       } else {
         setCustomerRides(rideData ?? [])
       }
-      setDismissedCancelledRideIds([])
 
       setOpenDriverRides([])
       setAcceptedDriverRides([])
