@@ -1,0 +1,311 @@
+/* Reuse lp-nav, lp-btn, lp-footer from LandingPage.css */
+@import './LandingPage.css';
+
+.profil {
+  display: flex;
+  flex-direction: column;
+  min-height: 100svh;
+  background: var(--bg);
+  position: relative;
+}
+
+/* ─── Back button ────────────────────────────────────────── */
+.profil-back {
+  position: absolute;
+  top: 1.5rem;
+  left: 2.5rem;
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  z-index: 10;
+}
+.profil-back:hover {
+  color: var(--accent);
+  border-color: var(--accent-border);
+  background: var(--accent-bg);
+}
+
+/* ─── Hero ───────────────────────────────────────────────── */
+.profil-hero {
+  padding: 4rem 3rem 5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.profil-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 80% 100% at 30% 0%, var(--accent-bg) 0%, transparent 65%);
+  pointer-events: none;
+}
+
+.profil-hero__inner {
+  max-width: 960px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 2.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+.profil-avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 4px var(--accent-bg), 0 0 0 8px var(--accent-border);
+}
+
+.profil-hero__info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.profil-hero__name {
+  font-size: clamp(28px, 4vw, 44px);
+  font-weight: 700;
+  letter-spacing: -1px;
+  color: var(--text-h);
+  margin: 0;
+}
+
+.profil-hero__meta {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.profil-hero__email {
+  font-size: 15px;
+  color: var(--text);
+  margin: 0;
+}
+
+/* Badges */
+.profil-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: var(--code-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.profil-badge--status {
+  color: var(--text);
+}
+
+.profil-badge--active {
+  background: var(--accent-bg);
+  color: var(--accent);
+  border-color: var(--accent-border);
+}
+
+/* ─── Content grid ───────────────────────────────────────── */
+.profil-content {
+  padding: 0 3rem 5rem;
+}
+
+.profil-grid {
+  max-width: 960px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+}
+
+.profil-card {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.5rem 1.75rem;
+  text-align: left;
+  transition: box-shadow 0.2s, border-color 0.2s, transform 0.2s;
+}
+
+.profil-card__label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text);
+  margin-bottom: 0.5rem;
+}
+
+.profil-card__value {
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--text-h);
+  word-break: break-word;
+}
+
+.profil-card--cta {
+  cursor: pointer;
+  border-color: var(--accent-border);
+  background: var(--accent-bg);
+}
+.profil-card--cta:hover {
+  box-shadow: var(--shadow);
+  transform: translateY(-3px);
+  border-color: var(--accent);
+}
+.profil-card--cta .profil-card__label {
+  color: var(--accent);
+}
+.profil-card--cta .profil-card__value {
+  color: var(--accent);
+  font-size: 18px;
+}
+
+/* ─── States ─────────────────────────────────────────────── */
+.profil-muted {
+  color: var(--text);
+  margin: 0;
+}
+.profil-error {
+  color: #dc2626;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* ─── RideCta live states ────────────────────────────────── */
+.profil-card--live {
+  border-color: var(--accent-border);
+  background: var(--accent-bg);
+}
+.profil-card--live .profil-card__label {
+  color: var(--accent);
+}
+
+/* Mini radar */
+.profil-radar {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  margin-top: 0.5rem;
+}
+.profil-radar__dot {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px; height: 8px;
+  background: var(--accent);
+  border-radius: 50%;
+  z-index: 1;
+}
+.profil-radar__ring {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  border: 1.5px solid var(--accent);
+  border-radius: 50%;
+  width: 0; height: 0;
+  opacity: 0;
+  animation: p-radar 2s ease-out infinite;
+}
+.profil-radar__ring:nth-child(1) { animation-delay: 0s; }
+.profil-radar__ring:nth-child(2) { animation-delay: 0.65s; }
+@keyframes p-radar {
+  0%   { width: 0;    height: 0;    opacity: 0.9; }
+  100% { width: 48px; height: 48px; opacity: 0;   }
+}
+
+/* Mini arriving */
+.profil-arriving {
+  position: relative;
+  width: 100%;
+  height: 40px;
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+}
+.profil-arriving__vehicle {
+  position: absolute;
+  left: 0;
+  font-size: 22px;
+  line-height: 1;
+  transform: scaleX(-1);
+  animation: p-arrive 2.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+.profil-arriving__road {
+  position: absolute;
+  left: 28px; right: 24px;
+  height: 1.5px;
+  background: repeating-linear-gradient(
+    to right,
+    var(--accent) 0, var(--accent) 6px,
+    transparent 6px, transparent 12px
+  );
+  opacity: 0.45;
+}
+.profil-arriving__dest {
+  position: absolute;
+  right: 0;
+  font-size: 18px;
+  animation: p-dest 2.6s ease-in-out infinite;
+}
+@keyframes p-arrive {
+  0%   { left: 0; opacity: 1; }
+  70%  { left: calc(100% - 42px); opacity: 1; }
+  85%  { left: calc(100% - 44px); opacity: 0; }
+  100% { left: 0; opacity: 0; }
+}
+@keyframes p-dest {
+  0%, 60%  { transform: scale(1); }
+  75%      { transform: scale(1.2); }
+  85%      { transform: scale(1); }
+  100%     { transform: scale(1); }
+}
+
+/* Active ride */
+.profil-active {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--accent) !important;
+}
+.profil-active__dot {
+  width: 8px; height: 8px;
+  background: var(--accent);
+  border-radius: 50%;
+  flex-shrink: 0;
+  animation: p-blink 1.2s ease-in-out infinite;
+}
+@keyframes p-blink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.35; transform: scale(0.7); }
+}
+
+/* ─── Responsive ─────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .profil-hero { padding: 3rem 1.5rem 3.5rem; }
+  .profil-hero__inner { flex-direction: column; align-items: flex-start; gap: 1.5rem; }
+  .profil-content { padding: 0 1.5rem 4rem; }
+  .profil-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 520px) {
+  .profil-grid { grid-template-columns: 1fr; }
+  .profil-avatar { width: 72px; height: 72px; font-size: 24px; }
+}
