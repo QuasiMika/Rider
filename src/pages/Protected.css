@@ -214,6 +214,12 @@
   margin-bottom: 0.9rem;
 }
 
+.ride-card-top-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .ride-route {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -262,6 +268,29 @@
 .ride-date {
   color: var(--text);
   font-size: 0.85rem;
+}
+
+.ride-dismiss {
+  border: none;
+  background: rgba(148, 163, 184, 0.18);
+  color: var(--text);
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 999px;
+  font-size: 1.05rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.ride-dismiss:hover {
+  background: rgba(239, 68, 68, 0.18);
+  color: #dc2626;
+}
+
+.ride-dismiss:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 60%, white 40%);
+  outline-offset: 1px;
 }
 
 .ride-card-actions {

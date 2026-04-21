@@ -34,6 +34,7 @@ export default function Protected() {
   const [acceptedDriverRides, setAcceptedDriverRides] = useState<RideRequest[]>([])
   const [pickupLocation, setPickupLocation] = useState('')
   const [dropoffLocation, setDropoffLocation] = useState('')
+  const [dismissedCancelledRideIds, setDismissedCancelledRideIds] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [busyRideId, setBusyRideId] = useState<string | null>(null)
@@ -72,6 +73,7 @@ export default function Protected() {
       } else {
         setCustomerRides(rideData ?? [])
       }
+      setDismissedCancelledRideIds([])
 
       setOpenDriverRides([])
       setAcceptedDriverRides([])
@@ -217,6 +219,12 @@ export default function Protected() {
     await loadDashboard()
   }
 
+  const handleDismissCancelledRide = (rideId: string) => {
+    setDismissedCancelledRideIds((previous) =>
+      previous.includes(rideId) ? previous : [...previous, rideId],
+    )
+  }
+
   const handleRejectRide = async (rideId: string) => {
     if (!user) return
 
@@ -243,6 +251,9 @@ export default function Protected() {
   }
 
   const displayName = [profile?.first_name, profile?.family_name].filter(Boolean).join(' ')
+  const visibleCustomerRides = customerRides.filter(
+    (ride) => !dismissedCancelledRideIds.includes(ride.id),
+  )
 
   return (
     <div className="protected">
@@ -310,17 +321,30 @@ export default function Protected() {
                 <p>Alle angelegten Fahrten bleiben fuer dich sichtbar, neueste zuerst.</p>
               </div>
 
-              {customerRides.length === 0 ? (
+              {visibleCustomerRides.length === 0 ? (
                 <p className="protected-muted">Noch keine Fahrten vorhanden.</p>
               ) : (
                 <div className="ride-list">
-                  {customerRides.map((ride) => (
+                  {visibleCustomerRides.map((ride) => (
                     <article className="ride-card" key={ride.id}>
                       <div className="ride-card-top">
                         <span className={`ride-status ride-status--${ride.status}`}>
                           {getCustomerStatusLabel(ride.status)}
                         </span>
-                        <span className="ride-date">{formatDate(ride.created_at)}</span>
+                        <div className="ride-card-top-meta">
+                          <span className="ride-date">{formatDate(ride.created_at)}</span>
+                          {ride.status === 'cancelled' && (
+                            <button
+                              className="ride-dismiss"
+                              type="button"
+                              onClick={() => handleDismissCancelledRide(ride.id)}
+                              aria-label="Stornierte Fahrt ausblenden"
+                              title="Stornierte Fahrt ausblenden"
+                            >
+                              ×
+                            </button>
+                          )}
+                        </div>
                       </div>
 
                       <div className="ride-route">
