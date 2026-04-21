@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react'
 import { Navigate } from 'react-router-dom'
 import { supabase } from '../utils/supabase'
 import { useAuth } from '../auth/AuthUser'
+import { DriverPanel } from './DriverPanel'
+import { GuestPanel } from './GuestPanel'
+import './RideMatching.css'
 
 type AppRole = 'driver' | 'guest' | null
 
@@ -12,38 +15,43 @@ export function RideMatchingApp() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!user) {
-      setLoading(false)
-      return
-    }
-
-    const fetchRole = async () => {
-      try {
-        const { data, error: fetchError } = await supabase
-          .from('user_profile')
-          .select('role')
-          .eq('user_id', user.id)
-          .single()
-
-        if (fetchError) throw fetchError
-
-        const normalized = data.role === 'driver' ? 'driver' : 'guest'
-        setRole(normalized)
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'Fehler beim Laden des Profils'
-        setError(message)
-      } finally {
+    if (!user) { setLoading(false); return }
+    supabase
+      .from('user_profile')
+      .select('role')
+      .eq('user_id', user.id)
+      .single()
+      .then(({ data, error: err }) => {
+        if (err) setError(err.message)
+        else setRole(data.role === 'driver' ? 'driver' : 'guest')
         setLoading(false)
-      }
-    }
-
-    fetchRole()
+      })
   }, [user])
 
   if (!user) return <Navigate to="/login" replace />
-  if (loading) return <p>Lade Profil...</p>
-  if (error) return <p className="ride-error">Fehler: {error}</p>
-  if (!role) return <p>Keine Rolle gefunden.</p>
 
-  return <Navigate to={`/${role}`} replace />
+  return (
+    <div className="rm">
+      <section className="rm-hero">
+        <div className="rm-hero__inner">
+          <span className="rm-hero__icon">{role === 'driver' ? '🚴' : '🛺'}</span>
+          <div className="rm-hero__text">
+            <h1>{role === 'driver' ? 'Fahrer-Dashboard' : 'Fahrt buchen'}</h1>
+            <p>
+              {role === 'driver'
+                ? 'Melde dich verfügbar und warte auf deinen nächsten Gast.'
+                : 'Fordere eine Fahrt an und wir finden den nächsten freien Fahrer für dich.'}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="rm-content">
+        {loading && <p style={{ color: 'var(--text)' }}>Lade...</p>}
+        {error && <p className="ride-error">{error}</p>}
+        {!loading && !error && role === 'driver' && <DriverPanel />}
+        {!loading && !error && role === 'guest' && <GuestPanel />}
+      </section>
+    </div>
+  )
 }

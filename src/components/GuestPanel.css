@@ -1,0 +1,137 @@
+/* ─── Radar (searching) ──────────────────────────────────── */
+.guest-radar {
+  position: relative;
+  width: 90px;
+  height: 90px;
+  margin: 1rem auto;
+  flex-shrink: 0;
+}
+
+.guest-radar__dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 10px;
+  height: 10px;
+  background: var(--accent);
+  border-radius: 50%;
+  z-index: 1;
+}
+
+.guest-radar__ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  animation: radar-expand 2.4s ease-out infinite;
+}
+
+.guest-radar__ring:nth-child(1) { animation-delay: 0s; }
+.guest-radar__ring:nth-child(2) { animation-delay: 0.7s; }
+.guest-radar__ring:nth-child(3) { animation-delay: 1.4s; }
+
+@keyframes radar-expand {
+  0%   { width: 0;    height: 0;    opacity: 0.9; }
+  100% { width: 90px; height: 90px; opacity: 0;   }
+}
+
+/* ─── Arriving animation (pending) ──────────────────────── */
+.guest-arriving {
+  position: relative;
+  width: 240px;
+  height: 56px;
+  margin: 1.25rem auto;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.guest-arriving__vehicle {
+  position: absolute;
+  left: 0;
+  font-size: 30px;
+  line-height: 1;
+  transform: scaleX(-1);
+  animation: vehicle-arrive 2.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  filter: drop-shadow(0 2px 6px rgba(22, 163, 74, 0.35));
+}
+
+.guest-arriving__road {
+  position: absolute;
+  left: 36px;
+  right: 32px;
+  top: 50%;
+  height: 2px;
+  background: repeating-linear-gradient(
+    to right,
+    var(--accent) 0,
+    var(--accent) 8px,
+    transparent 8px,
+    transparent 16px
+  );
+  opacity: 0.5;
+  transform: translateY(-50%);
+}
+
+.guest-arriving__dest {
+  position: absolute;
+  right: 0;
+  font-size: 24px;
+  line-height: 1;
+  animation: dest-pulse 2.8s ease-in-out infinite;
+}
+
+@keyframes vehicle-arrive {
+  0%   { left: 0;   opacity: 1; }
+  70%  { left: calc(100% - 56px); opacity: 1; }
+  80%  { left: calc(100% - 60px); opacity: 1; }
+  95%  { left: calc(100% - 60px); opacity: 0; }
+  100% { left: 0;   opacity: 0; }
+}
+
+@keyframes dest-pulse {
+  0%, 60%  { transform: scale(1); }
+  75%      { transform: scale(1.25); }
+  85%      { transform: scale(1); }
+  100%     { transform: scale(1); }
+}
+
+/* ─── Active ride indicator ──────────────────────────────── */
+.guest-active {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  font-size: 16px;
+  color: var(--accent);
+  font-weight: 500;
+  margin: 0.5rem 0;
+}
+
+.guest-active__dot {
+  width: 10px;
+  height: 10px;
+  background: var(--accent);
+  border-radius: 50%;
+  animation: active-blink 1.2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes active-blink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.4; transform: scale(0.75); }
+}
+
+/* ─── Ride ID ────────────────────────────────────────────── */
+.guest-ride-id {
+  font-size: 11px;
+  color: var(--text);
+  opacity: 0.6;
+  margin-top: 0.25rem;
+}
