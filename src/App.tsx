@@ -1,4 +1,4 @@
-import { HashRouter, Routes, Route, Navigate, Link } from 'react-router-dom'
+import { HashRouter, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth/AuthUser'
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -7,8 +7,9 @@ import Protected from './pages/Protected'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
+  const location = useLocation()
   if (loading) return null
-  if (!user) return <Navigate to="/login" replace />
+  if (!user) return <Navigate to="/login" state={{ from: location }} replace />
   return <>{children}</>
 }
 
