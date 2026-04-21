@@ -8,8 +8,10 @@ import Protected from './pages/Protected'
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
   const location = useLocation()
+
   if (loading) return null
   if (!user) return <Navigate to="/login" state={{ from: location }} replace />
+
   return <>{children}</>
 }
 
@@ -38,23 +40,23 @@ function Home() {
   return (
     <div style={{ padding: '2rem', textAlign: 'left' }}>
       <Link to="/help">
-        <button style={btnStyle}>Help →</button>
+        <button style={btnStyle}>Help</button>
       </Link>
 
       {user ? (
         <Link to="/protected">
-          <button style={btnStyle}>Protected →</button>
+          <button style={btnStyle}>Dashboard</button>
         </Link>
       ) : (
         <button style={btnDisabled} disabled title="Bitte zuerst anmelden">
-          Protected 🔒
+          Dashboard
         </button>
       )}
 
       {!user && (
         <Link to="/login">
           <button style={{ ...btnStyle, background: 'var(--accent)', color: '#fff', border: 'none' }}>
-            Anmelden →
+            Anmelden
           </button>
         </Link>
       )}

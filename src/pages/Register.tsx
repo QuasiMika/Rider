@@ -19,7 +19,7 @@ export default function Register() {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (user) navigate('/', { replace: true })
+    if (user) navigate('/protected', { replace: true })
   }, [user, navigate])
 
   const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
