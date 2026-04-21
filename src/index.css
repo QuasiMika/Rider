@@ -109,3 +109,86 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
+
+/* Ride Matching */
+.ride-matching-app {
+  max-width: 480px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+.ride-panel {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.ride-panel h2 {
+  margin: 0;
+  color: var(--text-h);
+}
+
+.ride-panel--matched {
+  border-color: var(--accent-border);
+  background: var(--accent-bg);
+}
+
+.ride-panel--waiting {
+  align-items: center;
+  text-align: center;
+}
+
+.ride-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ride-info__row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: baseline;
+}
+
+.ride-info__label {
+  font-weight: 600;
+  color: var(--text);
+  min-width: 80px;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ride-info__value {
+  color: var(--text-h);
+  word-break: break-all;
+}
+
+.ride-error {
+  color: #c0392b;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.ride-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--accent-border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: ride-spin 0.8s linear infinite;
+}
+
+@keyframes ride-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-color-scheme: dark) {
+  .ride-panel--matched {
+    background: rgba(170, 59, 255, 0.08);
+  }
+}
