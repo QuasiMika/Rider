@@ -13,12 +13,54 @@ type UseRideMatchingResult = {
   error: string | null
 }
 
-export function useRideMatching(userId: string): UseRideMatchingResult {
+export function useRideMatching(userId: string, role: 'driver' | 'guest'): UseRideMatchingResult {
   const [currentRide, setCurrentRide] = useState<Ride | null>(null)
   const [status, setStatus] = useState<Status>('idle')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // On mount: restore state if user already has a pending request or an active ride
+  useEffect(() => {
+    if (!userId) return
+
+    const checkExistingState = async () => {
+      // Check for an active ride first
+      const rideField = role === 'driver' ? 'driver_id' : 'guest_id'
+      const { data: ride } = await supabase
+        .from('rides')
+        .select('*')
+        .eq(rideField, userId)
+        .in('status', ['pending', 'active'])
+        .maybeSingle()
+
+      if (ride) {
+        setCurrentRide(ride as Ride)
+        setStatus('matched')
+        return
+      }
+
+      // Check for a waiting availability / request
+      const table = role === 'driver' ? 'driver_availability' : 'guest_requests'
+      const userField = role === 'driver' ? 'driver_id' : 'guest_id'
+      const waitingStatus = role === 'driver' ? 'available' : 'waiting'
+
+      const { data: existing } = await supabase
+        .from(table)
+        .select('id')
+        .eq(userField, userId)
+        .eq('status', waitingStatus)
+        .maybeSingle()
+
+      if (existing) {
+        setStatus('waiting')
+        setIsLoading(true)
+      }
+    }
+
+    checkExistingState()
+  }, [userId, role])
+
+  // Realtime subscription: listen for a new ride being created for this user
   useEffect(() => {
     if (!userId) return
 
@@ -65,7 +107,7 @@ export function useRideMatching(userId: string): UseRideMatchingResult {
     }
   }, [userId])
 
-  const callMatchFunction = async (role: 'driver' | 'guest', recordId: string) => {
+  const callMatchFunction = async (recordId: string) => {
     const { data: { session } } = await supabase.auth.getSession()
 
     const { data, error: fnError } = await supabase.functions.invoke<MatchResult>('match-ride', {
@@ -103,15 +145,30 @@ export function useRideMatching(userId: string): UseRideMatchingResult {
     setStatus('waiting')
 
     try {
-      const { data, error: insertError } = await supabase
+      // Reuse existing record if one already exists (prevents duplicates)
+      const { data: existing } = await supabase
         .from('driver_availability')
-        .insert({ driver_id: userId, status: 'available' })
-        .select()
-        .single()
+        .select('id')
+        .eq('driver_id', userId)
+        .eq('status', 'available')
+        .maybeSingle()
 
-      if (insertError) throw insertError
+      let recordId: string
 
-      await callMatchFunction('driver', data.id)
+      if (existing) {
+        recordId = existing.id
+      } else {
+        const { data, error: insertError } = await supabase
+          .from('driver_availability')
+          .insert({ driver_id: userId, status: 'available' })
+          .select('id')
+          .single()
+
+        if (insertError) throw insertError
+        recordId = data.id
+      }
+
+      await callMatchFunction(recordId)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unbekannter Fehler'
       setError(message)
@@ -127,15 +184,30 @@ export function useRideMatching(userId: string): UseRideMatchingResult {
     setStatus('waiting')
 
     try {
-      const { data, error: insertError } = await supabase
+      // Reuse existing record if one already exists (prevents duplicates)
+      const { data: existing } = await supabase
         .from('guest_requests')
-        .insert({ guest_id: userId, status: 'waiting' })
-        .select()
-        .single()
+        .select('id')
+        .eq('guest_id', userId)
+        .eq('status', 'waiting')
+        .maybeSingle()
 
-      if (insertError) throw insertError
+      let recordId: string
 
-      await callMatchFunction('guest', data.id)
+      if (existing) {
+        recordId = existing.id
+      } else {
+        const { data, error: insertError } = await supabase
+          .from('guest_requests')
+          .insert({ guest_id: userId, status: 'waiting' })
+          .select('id')
+          .single()
+
+        if (insertError) throw insertError
+        recordId = data.id
+      }
+
+      await callMatchFunction(recordId)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unbekannter Fehler'
       setError(message)

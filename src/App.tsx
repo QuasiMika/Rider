@@ -1,13 +1,14 @@
-import { HashRouter, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom'
+import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth/AuthUser'
+import { AppLayout } from './components/AppLayout'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Help from './pages/Help'
-import Protected from './pages/Protected'
+import Profil from './pages/Profil'
+import LandingPage from './pages/LandingPage'
 import { RideMatchingApp } from './components/RideMatchingApp'
 import { DriverPanel } from './components/DriverPanel'
 import { GuestPanel } from './components/GuestPanel'
-import DriverPage from './pages/DriverPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -53,11 +54,6 @@ function Home() {
           <Link to="/ride">
             <button style={{ ...btnStyle, background: 'var(--accent)', color: '#fff', border: 'none' }}>
               Fahrt buchen →
-            </button>
-          </Link>
-          <Link to="/driver">
-            <button style={{ ...btnStyle, background: 'var(--accent)', color: '#fff', border: 'none' }}>
-              Fahrer-Dashboard →
             </button>
           </Link>
         </>
@@ -107,7 +103,7 @@ export default function App() {
             path="/driver"
             element={
               <ProtectedRoute>
-                <DriverPage />
+                <DriverPanel />
               </ProtectedRoute>
             }
           />
