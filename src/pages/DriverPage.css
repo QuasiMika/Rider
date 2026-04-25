@@ -1,0 +1,288 @@
+/* ── Page layout ─────────────────────────────────── */
+.driver-page {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  text-align: left;
+}
+
+/* ── Header ──────────────────────────────────────── */
+.driver-page__header {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 1rem;
+}
+
+.driver-page__title {
+  margin: 0 0 0.25rem;
+  font-size: 1.75rem;
+  letter-spacing: -0.5px;
+}
+
+.driver-page__subtitle {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+/* ── Stats row ───────────────────────────────────── */
+.driver-page__stats {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.driver-page__stat {
+  flex: 1 1 100px;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.driver-page__stat-value {
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--text-h);
+  line-height: 1;
+}
+
+.driver-page__stat-label {
+  font-size: 0.8rem;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ── Availability panel ──────────────────────────── */
+.driver-page__availability {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.driver-page__match-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.driver-page__match-info h2 {
+  margin: 0;
+  color: #22c55e;
+  font-size: 1.2rem;
+}
+
+.driver-page__match-row {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.driver-page__match-row span {
+  width: 90px;
+  color: var(--text);
+  flex-shrink: 0;
+}
+
+.driver-page__waiting {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  color: var(--text);
+}
+
+.driver-page__idle {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.driver-page__cta {
+  font-family: var(--sans);
+  font-size: 1rem;
+  padding: 0.7rem 1.5rem;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  align-self: flex-start;
+}
+
+.driver-page__cta:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.driver-page__cta:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Spinner ─────────────────────────────────────── */
+.driver-page__spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: driver-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes driver-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Table section ───────────────────────────────── */
+.driver-page__table-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.driver-page__table-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.driver-page__table-title {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.driver-page__refresh {
+  font-size: 1.1rem;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.2rem 0.6rem;
+  cursor: pointer;
+  color: var(--text-h);
+  transition: background 0.15s;
+}
+
+.driver-page__refresh:hover:not(:disabled) {
+  background: var(--code-bg);
+}
+
+.driver-page__refresh:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.driver-page__table-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.driver-page__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.driver-page__table th {
+  background: var(--code-bg);
+  color: var(--text);
+  font-weight: 500;
+  text-align: left;
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.driver-page__table td {
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-h);
+  vertical-align: middle;
+}
+
+.driver-page__table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.driver-page__table tbody tr:hover {
+  background: var(--code-bg);
+}
+
+.driver-page__row--matched td {
+  opacity: 0.55;
+}
+
+.driver-page__cell--center {
+  text-align: center;
+  color: var(--text);
+}
+
+/* ── Inline elements ─────────────────────────────── */
+.driver-page__badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.driver-page__badge--waiting {
+  background: rgba(234, 179, 8, 0.15);
+  color: #ca8a04;
+}
+
+.driver-page__badge--matched {
+  background: rgba(34, 197, 94, 0.15);
+  color: #16a34a;
+}
+
+.driver-page__badge--pending {
+  background: rgba(234, 179, 8, 0.15);
+  color: #ca8a04;
+}
+
+.driver-page__badge--active {
+  background: rgba(59, 130, 246, 0.15);
+  color: #2563eb;
+}
+
+.driver-page__badge--completed {
+  background: rgba(34, 197, 94, 0.15);
+  color: #16a34a;
+}
+
+.driver-page__code {
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  background: var(--code-bg);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+
+.driver-page__null {
+  color: var(--text);
+  opacity: 0.5;
+}
+
+.driver-page__empty {
+  color: var(--text);
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 2rem;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+}
+
+.driver-page__error {
+  font-size: 0.875rem;
+  color: #ef4444;
+  margin: 0;
+}

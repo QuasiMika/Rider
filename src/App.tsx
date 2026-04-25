@@ -7,6 +7,7 @@ import Protected from './pages/Protected'
 import { RideMatchingApp } from './components/RideMatchingApp'
 import { DriverPanel } from './components/DriverPanel'
 import { GuestPanel } from './components/GuestPanel'
+import DriverPage from './pages/DriverPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -52,6 +53,11 @@ function Home() {
           <Link to="/ride">
             <button style={{ ...btnStyle, background: 'var(--accent)', color: '#fff', border: 'none' }}>
               Fahrt buchen →
+            </button>
+          </Link>
+          <Link to="/driver">
+            <button style={{ ...btnStyle, background: 'var(--accent)', color: '#fff', border: 'none' }}>
+              Fahrer-Dashboard →
             </button>
           </Link>
         </>
@@ -101,7 +107,7 @@ export default function App() {
             path="/driver"
             element={
               <ProtectedRoute>
-                <DriverPanel />
+                <DriverPage />
               </ProtectedRoute>
             }
           />
