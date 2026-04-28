@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../utils/supabase'
 import './DriverPage.css'
 
-type RideStatus = 'open' | 'accepted' | 'cancelled'
+type RideStatus = 'open' | 'accepted' | 'cancelled' | 'completed'
 
 type RideRequest = {
   id: string
@@ -83,6 +83,7 @@ export default function DriverPage() {
       case 'open': return 'Offen'
       case 'accepted': return 'Angenommen'
       case 'cancelled': return 'Storniert'
+      case 'completed': return 'Abgeschlossen'
     }
   }
 

@@ -1,4 +1,4 @@
-CREATE TYPE public.ride_status AS ENUM ('open', 'accepted', 'cancelled');
+CREATE TYPE public.ride_status AS ENUM ('open', 'accepted', 'cancelled', 'completed');
 
 CREATE TABLE public.ride_request (
   id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -62,6 +62,17 @@ USING (
 WITH CHECK (
   auth.uid() = driver_id
   AND status = 'accepted'
+);
+
+CREATE POLICY "Drivers can complete own rides"
+ON public.ride_request FOR UPDATE TO authenticated
+USING (
+  status = 'accepted'
+  AND auth.uid() = driver_id
+)
+WITH CHECK (
+  auth.uid() = driver_id
+  AND status = 'completed'
 );
 
 CREATE POLICY "Drivers manage own rejections"

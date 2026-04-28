@@ -18,7 +18,7 @@ type UserProfile = {
   created_at: string
 }
 
-type RideStatus = 'open' | 'accepted' | 'cancelled'
+type RideStatus = 'open' | 'accepted' | 'cancelled' | 'completed'
 
 type RideRequest = {
   id: string
@@ -244,6 +244,31 @@ export default function Protected() {
     await loadDashboard()
   }
 
+  const handleCompleteRide = async (rideId: string) => {
+    if (!user) return
+
+    setBusyRideId(rideId)
+    setError(null)
+    setMessage(null)
+
+    const { error: completeError } = await supabase
+      .from('ride_request')
+      .update({ status: 'completed' })
+      .eq('id', rideId)
+      .eq('driver_id', user.id)
+      .eq('status', 'accepted')
+
+    if (completeError) {
+      setError(completeError.message)
+      setBusyRideId(null)
+      return
+    }
+
+    setMessage('Fahrt erfolgreich abgeschlossen.')
+    setBusyRideId(null)
+    await loadDashboard()
+  }
+
   const displayName = [profile?.first_name, profile?.family_name].filter(Boolean).join(' ')
 
   return (
@@ -451,6 +476,17 @@ export default function Protected() {
                           <strong>{ride.dropoff_location}</strong>
                         </div>
                       </div>
+
+                      <div className="ride-card-actions">
+                        <button
+                          className="dashboard-button dashboard-button--primary"
+                          type="button"
+                          disabled={busyRideId === ride.id}
+                          onClick={() => void handleCompleteRide(ride.id)}
+                        >
+                          {busyRideId === ride.id ? 'Wird abgeschlossen...' : 'Fahrt abschließen'}
+                        </button>
+                      </div>
                     </article>
                   ))}
                 </div>
@@ -477,5 +513,6 @@ function formatDate(value: string) {
 function getCustomerStatusLabel(status: RideStatus) {
   if (status === 'accepted') return 'Angenommen'
   if (status === 'cancelled') return 'Storniert'
+  if (status === 'completed') return 'Abgeschlossen'
   return 'Offen'
 }
