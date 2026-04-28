@@ -6,6 +6,86 @@
     radial-gradient(circle at bottom right, rgba(59, 130, 246, 0.1), transparent 26rem);
 }
 
+.driver-notifications {
+  position: fixed;
+  top: 1.25rem;
+  right: 1.25rem;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.driver-notif {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  background: #8b3dff;
+  color: #fff;
+  padding: 0.75rem 1.1rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(139, 61, 255, 0.35);
+  font-family: var(--sans);
+  font-size: 0.9rem;
+  animation: notif-in 0.25s ease;
+  min-width: 220px;
+}
+
+@keyframes notif-in {
+  from { opacity: 0; transform: translateX(2rem); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.driver-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.driver-toggle-label {
+  font-family: var(--sans);
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.driver-toggle-label--active {
+  color: #8b3dff;
+  font-weight: 600;
+}
+
+.toggle-track {
+  width: 48px;
+  height: 26px;
+  border-radius: 999px;
+  background: #d1d5db;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.toggle-track--on {
+  background: #8b3dff;
+}
+
+.toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  transition: transform 0.2s;
+}
+
+.toggle-track--on .toggle-thumb {
+  transform: translateX(22px);
+}
+
 .dashboard-shell {
   max-width: 1120px;
   margin: 0 auto;

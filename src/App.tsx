@@ -4,6 +4,7 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import Help from './pages/Help'
 import Protected from './pages/Protected'
+import DriverPage from './pages/DriverPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -78,6 +79,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <Protected />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/driver"
+            element={
+              <ProtectedRoute>
+                <DriverPage />
               </ProtectedRoute>
             }
           />

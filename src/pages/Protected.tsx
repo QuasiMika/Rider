@@ -1,8 +1,14 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../utils/supabase'
 import { useAuth } from '../auth/AuthUser'
 import './Protected.css'
+
+type Notification = {
+  id: number
+  pickup: string
+  dropoff: string
+}
 
 type UserProfile = {
   first_name: string | null
@@ -39,6 +45,9 @@ export default function Protected() {
   const [busyRideId, setBusyRideId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const [active, setActive] = useState(false)
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const notifCounter = useRef(0)
 
   const loadDashboard = useCallback(async () => {
     if (!user) return
@@ -82,7 +91,6 @@ export default function Protected() {
     const [
       { data: openRideData, error: openRideError },
       { data: acceptedRideData, error: acceptedRideError },
-      { data: rejectionData, error: rejectionError },
     ] = await Promise.all([
       supabase
         .from('ride_request')
@@ -95,13 +103,9 @@ export default function Protected() {
         .eq('driver_id', user.id)
         .eq('status', 'accepted')
         .order('accepted_at', { ascending: false }),
-      supabase
-        .from('ride_request_rejection')
-        .select('ride_id')
-        .eq('driver_id', user.id),
     ])
 
-    const dashboardError = openRideError ?? acceptedRideError ?? rejectionError
+    const dashboardError = openRideError ?? acceptedRideError
 
     if (dashboardError) {
       setError(dashboardError.message)
@@ -109,9 +113,7 @@ export default function Protected() {
       return
     }
 
-    const rejectedRideIds = new Set((rejectionData ?? []).map((entry) => entry.ride_id))
-
-    setOpenDriverRides((openRideData ?? []).filter((ride) => !rejectedRideIds.has(ride.id)))
+    setOpenDriverRides(openRideData ?? [])
     setAcceptedDriverRides(acceptedRideData ?? [])
     setCustomerRides([])
     setLoading(false)
@@ -125,6 +127,34 @@ export default function Protected() {
 
     return () => window.clearTimeout(timeoutId)
   }, [user, loadDashboard])
+
+  useEffect(() => {
+    if (!active || !user) return
+
+    const channel = supabase
+      .channel('driver-ride-inserts')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'ride_request' },
+        (payload) => {
+          const ride = payload.new as RideRequest
+          void loadDashboard()
+          const id = ++notifCounter.current
+          setNotifications((prev) => [
+            ...prev,
+            { id, pickup: ride.pickup_location, dropoff: ride.dropoff_location },
+          ])
+          window.setTimeout(() => {
+            setNotifications((prev) => prev.filter((n) => n.id !== id))
+          }, 4000)
+        },
+      )
+      .subscribe()
+
+    return () => {
+      void supabase.removeChannel(channel)
+    }
+  }, [active, user, loadDashboard])
 
   const handleCreateRide = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -186,18 +216,15 @@ export default function Protected() {
     setError(null)
     setMessage(null)
 
-    const { data, error: acceptError } = await supabase
+    const { count, error: acceptError } = await supabase
       .from('ride_request')
       .update({
         status: 'accepted',
         driver_id: user.id,
         accepted_at: new Date().toISOString(),
-      })
+      }, { count: 'exact' })
       .eq('id', rideId)
       .eq('status', 'open')
-      .is('driver_id', null)
-      .select('id')
-      .maybeSingle()
 
     if (acceptError) {
       setError(acceptError.message)
@@ -205,8 +232,8 @@ export default function Protected() {
       return
     }
 
-    if (!data) {
-      setMessage('Dieser Auftrag wurde gerade von jemand anderem angenommen oder ist nicht mehr offen.')
+    if (count === 0) {
+      setError('Update fehlgeschlagen: Prüfe ob dein Konto als Fahrer in user_profile eingetragen ist (role = driver).')
       setBusyRideId(null)
       await loadDashboard()
       return
@@ -217,35 +244,18 @@ export default function Protected() {
     await loadDashboard()
   }
 
-  const handleRejectRide = async (rideId: string) => {
-    if (!user) return
-
-    setBusyRideId(rideId)
-    setError(null)
-    setMessage(null)
-
-    const { error: rejectError } = await supabase
-      .from('ride_request_rejection')
-      .upsert({
-        ride_id: rideId,
-        driver_id: user.id,
-      })
-
-    if (rejectError) {
-      setError(rejectError.message)
-      setBusyRideId(null)
-      return
-    }
-
-    setMessage('Der Auftrag wurde fuer dich ausgeblendet.')
-    setBusyRideId(null)
-    await loadDashboard()
-  }
-
   const displayName = [profile?.first_name, profile?.family_name].filter(Boolean).join(' ')
 
   return (
     <div className="protected">
+      <div className="driver-notifications">
+        {notifications.map((n) => (
+          <div key={n.id} className="driver-notif">
+            <strong>Neue Fahrtanfrage!</strong>
+            <span>{n.pickup} → {n.dropoff}</span>
+          </div>
+        ))}
+      </div>
       <div className="dashboard-shell">
         <div className="dashboard-header">
           <div>
@@ -258,7 +268,19 @@ export default function Protected() {
               {profile?.role ? ` · ${profile.role === 'driver' ? 'Fahrer' : 'Kunde'}` : ''}
             </p>
           </div>
-          <button onClick={signOut} className="protected-signout">Abmelden</button>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.75rem' }}>
+            {profile?.role === 'driver' && (
+              <label className="driver-toggle">
+                <span className={`driver-toggle-label${active ? ' driver-toggle-label--active' : ''}`}>
+                  {active ? 'Aktiv – suche Fahrten' : 'Aus – nicht aktiv'}
+                </span>
+                <div className={`toggle-track${active ? ' toggle-track--on' : ''}`} onClick={() => setActive((v) => !v)}>
+                  <div className="toggle-thumb" />
+                </div>
+              </label>
+            )}
+            <button onClick={signOut} className="protected-signout">Abmelden</button>
+          </div>
         </div>
 
         {loading && <p className="protected-muted">Dashboard wird geladen...</p>}
@@ -353,7 +375,8 @@ export default function Protected() {
         )}
 
         {!loading && profile?.role === 'driver' && (
-          <div className="dashboard-grid">
+          <>
+            <div className="dashboard-grid">
             <section className="dashboard-panel">
               <div className="panel-header">
                 <h2>Offene Auftraege</h2>
@@ -391,14 +414,7 @@ export default function Protected() {
                         >
                           {busyRideId === ride.id ? 'Wird verarbeitet...' : 'Annehmen'}
                         </button>
-                        <button
-                          className="dashboard-button dashboard-button--secondary"
-                          type="button"
-                          disabled={busyRideId === ride.id}
-                          onClick={() => void handleRejectRide(ride.id)}
-                        >
-                          Ablehnen
-                        </button>
+
                       </div>
                     </article>
                   ))}
@@ -441,6 +457,7 @@ export default function Protected() {
               )}
             </section>
           </div>
+          </>
         )}
       </div>
     </div>
