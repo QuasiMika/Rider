@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthUser'
 import { useRideMatching } from '../hooks/useRideMatching'
 import { supabase } from '../utils/supabase'
+import type { Ride } from '../types/ride'
 import './Profil.css'
 
 function RideCta({ userId, role }: { userId: string; role: 'driver' | 'guest' }) {
@@ -68,6 +69,7 @@ export default function Profil() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [completedRides, setCompletedRides] = useState<Ride[]>([])
 
   useEffect(() => {
     if (!user) return
@@ -82,6 +84,18 @@ export default function Profil() {
         setLoading(false)
       })
   }, [user])
+
+  useEffect(() => {
+    if (!user || !profile) return
+    const col = profile.role === 'driver' ? 'driver_id' : 'guest_id'
+    supabase
+      .from('rides')
+      .select('id, driver_id, guest_id, status, created_at')
+      .eq(col, user.id)
+      .eq('status', 'completed')
+      .order('created_at', { ascending: false })
+      .then(({ data }) => { if (data) setCompletedRides(data as Ride[]) })
+  }, [user, profile])
 
   const initials = profile
     ? `${profile.first_name?.[0] ?? ''}${profile.family_name?.[0] ?? ''}`.toUpperCase()
@@ -152,6 +166,26 @@ export default function Profil() {
               userId={user?.id ?? ''}
               role={profile.role === 'driver' ? 'driver' : 'guest'}
             />
+          </div>
+
+          <div className="profil-rides">
+            <h2 className="profil-rides__title">Abgeschlossene Fahrten</h2>
+            {completedRides.length === 0 ? (
+              <p className="profil-muted">Keine abgeschlossenen Fahrten.</p>
+            ) : (
+              <ul className="profil-rides__list">
+                {completedRides.map(ride => (
+                  <li key={ride.id} className="profil-rides__item">
+                    <span className="profil-rides__date">
+                      {new Date(ride.created_at).toLocaleDateString('de-DE', {
+                        day: '2-digit', month: 'short', year: 'numeric',
+                      })}
+                    </span>
+                    <span className="profil-rides__badge">Abgeschlossen</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </section>
       )}

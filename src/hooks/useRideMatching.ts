@@ -6,7 +6,9 @@ type Status = 'idle' | 'waiting' | 'matched' | 'error'
 
 type UseRideMatchingResult = {
   submitAvailability: () => Promise<void>
-  requestRide: () => Promise<void>
+  requestRide: (pickupLocation: string, destination: string) => Promise<void>
+  cancelRequest: () => Promise<void>
+  confirmPickup: () => Promise<void>
   currentRide: Ride | null
   status: Status
   isLoading: boolean
@@ -30,7 +32,7 @@ export function useRideMatching(userId: string, role: 'driver' | 'guest'): UseRi
         .from('rides')
         .select('*')
         .eq(rideField, userId)
-        .in('status', ['pending', 'active'])
+        .in('status', ['pending', 'picked_up', 'active'])
         .maybeSingle()
 
       if (ride) {
@@ -97,6 +99,18 @@ export function useRideMatching(userId: string, role: 'driver' | 'guest'): UseRi
           setCurrentRide(payload.new as Ride)
           setStatus('matched')
           setIsLoading(false)
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'rides',
+          filter: `guest_id=eq.${userId}`,
+        },
+        (payload) => {
+          setCurrentRide(payload.new as Ride)
         }
       )
       .subscribe()
@@ -177,7 +191,7 @@ export function useRideMatching(userId: string, role: 'driver' | 'guest'): UseRi
     }
   }
 
-  const requestRide = async () => {
+  const requestRide = async (pickupLocation: string, destination: string) => {
     if (!userId) return
     setIsLoading(true)
     setError(null)
@@ -192,22 +206,15 @@ export function useRideMatching(userId: string, role: 'driver' | 'guest'): UseRi
         .eq('status', 'waiting')
         .maybeSingle()
 
-      let recordId: string
-
-      if (existing) {
-        recordId = existing.id
-      } else {
-        const { data, error: insertError } = await supabase
+      if (!existing) {
+        const { error: insertError } = await supabase
           .from('guest_requests')
-          .insert({ guest_id: userId, status: 'waiting' })
-          .select('id')
-          .single()
+          .insert({ guest_id: userId, status: 'waiting', pickup_location: pickupLocation, destination })
 
         if (insertError) throw insertError
-        recordId = data.id
       }
 
-      await callMatchFunction(recordId)
+      // Matching is now driver-initiated: realtime subscription handles the rest
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unbekannter Fehler'
       setError(message)
@@ -216,5 +223,27 @@ export function useRideMatching(userId: string, role: 'driver' | 'guest'): UseRi
     }
   }
 
-  return { submitAvailability, requestRide, currentRide, status, isLoading, error }
+  const cancelRequest = async () => {
+    if (!userId) return
+    const { error: deleteError } = await supabase
+      .from('guest_requests')
+      .delete()
+      .eq('guest_id', userId)
+      .eq('status', 'waiting')
+
+    if (!deleteError) {
+      setStatus('idle')
+      setIsLoading(false)
+      setError(null)
+    }
+  }
+
+  const confirmPickup = async () => {
+    if (!currentRide?.id) return
+    await supabase.rpc('confirm_pickup', { p_ride_id: currentRide.id })
+    // Optimistic update — realtime will confirm
+    setCurrentRide(prev => prev ? { ...prev, status: 'picked_up' } : null)
+  }
+
+  return { submitAvailability, requestRide, cancelRequest, confirmPickup, currentRide, status, isLoading, error }
 }

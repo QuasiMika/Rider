@@ -14,4 +14,19 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  server: {
+    proxy: {
+      '/nominatim': {
+        target: 'https://nominatim.openstreetmap.org',
+        changeOrigin: true,
+        rewrite: path => path.replace(/^\/nominatim/, ''),
+        headers: { 'User-Agent': 'Rider-App/1.0 (dev)' },
+      },
+      '/osrm': {
+        target: 'https://router.project-osrm.org',
+        changeOrigin: true,
+        rewrite: path => path.replace(/^\/osrm/, ''),
+      },
+    },
+  },
 });

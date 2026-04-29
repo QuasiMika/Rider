@@ -32,19 +32,6 @@ export function RideMatchingApp() {
 
   return (
     <div className="rm">
-      <section className="rm-hero">
-        <div className="rm-hero__inner">
-          <span className="rm-hero__icon">{role === 'driver' ? '🚴' : '🛺'}</span>
-          <div className="rm-hero__text">
-            <h1>{role === 'driver' ? 'Fahrer-Dashboard' : 'Fahrt buchen'}</h1>
-            <p>
-              {role === 'driver'
-                ? 'Melde dich verfügbar und warte auf deinen nächsten Gast.'
-                : 'Fordere eine Fahrt an und wir finden den nächsten freien Fahrer für dich.'}
-            </p>
-          </div>
-        </div>
-      </section>
 
       <section className="rm-content">
         {loading && <p style={{ color: 'var(--text)' }}>Lade...</p>}
