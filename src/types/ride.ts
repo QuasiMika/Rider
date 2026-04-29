@@ -28,6 +28,14 @@ export type Ride = {
   created_at: string
 }
 
+export type RideReport = {
+  id: string
+  ride_id: string
+  reporter_id: string
+  notes: string | null
+  created_at: string
+}
+
 export type MatchResult =
   | { matched: true; ride_id: string }
   | { matched: false }

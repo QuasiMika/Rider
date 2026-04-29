@@ -8,6 +8,15 @@ import { supabase } from '../utils/supabase'
 
 type PartnerProfile = { first_name: string | null; family_name: string | null }
 
+function openMapsToLocation(location: string) {
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+  const encoded = encodeURIComponent(location.trim())
+  const url = isIOS
+    ? `maps://?daddr=${encoded}`
+    : `https://www.google.com/maps/dir/?api=1&destination=${encoded}`
+  window.open(url, '_blank')
+}
+
 type RequestItemProps = {
   req: { id: string; guestInitials: string; guestName: string; pickupLocation: string; destination: string }
   isAccepting: boolean
@@ -148,6 +157,24 @@ export function DriverPanel() {
                   </div>
                 )}
               </div>
+            )}
+
+            {(currentRide.status === 'pending' && currentRide.pickup_location) && (
+              <button
+                className="rm-btn rm-btn--maps"
+                onClick={() => openMapsToLocation(currentRide.pickup_location!)}
+              >
+                📍 Navigation zum Abholort
+              </button>
+            )}
+
+            {(currentRide.status === 'picked_up' && currentRide.destination) && (
+              <button
+                className="rm-btn rm-btn--maps"
+                onClick={() => openMapsToLocation(currentRide.destination!)}
+              >
+                🗺️ Navigation zum Ziel
+              </button>
             )}
 
             {currentRide.status === 'picked_up' && (

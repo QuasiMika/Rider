@@ -5,6 +5,7 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import Help from './pages/Help'
 import Profil from './pages/Profil'
+import PublicProfile from './pages/PublicProfile'
 import LandingPage from './pages/LandingPage'
 import { RideMatchingApp } from './components/RideMatchingApp'
 
@@ -27,6 +28,7 @@ export default function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/help" element={<Help />} />
             <Route path="/profil" element={<ProtectedRoute><Profil /></ProtectedRoute>} />
+            <Route path="/profile/:id" element={<ProtectedRoute><PublicProfile /></ProtectedRoute>} />
             <Route path="/ride" element={<ProtectedRoute><RideMatchingApp /></ProtectedRoute>} />
             <Route path="/driver" element={<Navigate to="/ride" replace />} />
             <Route path="/guest" element={<Navigate to="/ride" replace />} />
