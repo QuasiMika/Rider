@@ -1,3 +1,20 @@
+/* ─── Payment success banner ─────────────────────────────── */
+.payment-success-banner {
+  background: var(--accent-bg);
+  border-bottom: 1px solid var(--accent-border);
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 0.75rem 1.5rem;
+  text-align: center;
+  animation: banner-in 0.3s ease;
+}
+
+@keyframes banner-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 /* ─── Radar (searching) ──────────────────────────────────── */
 .guest-radar {
   position: relative;
@@ -300,6 +317,69 @@
   flex-direction: column;
   align-items: center;
   gap: 8px;
+}
+
+/* ─── Landmark chips ─────────────────────────────────────── */
+.guest-landmarks {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.guest-landmark-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+
+.guest-landmark-chip:hover {
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+
+.guest-landmark-chip--active {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+
+/* ─── Payment card ───────────────────────────────────────── */
+.guest-payment {
+  width: 100%;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.guest-payment__title {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--text-h);
+}
+
+.guest-payment__sub {
+  font-size: 13px;
+  color: var(--text);
+}
+
+.guest-payment__btn {
+  margin-top: 0.25rem;
 }
 
 .guest-idle__error {

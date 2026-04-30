@@ -4,6 +4,15 @@ import { reverseGeocoder } from '../utils/reverseGeocoding'
 import { estimateFare, type FareEstimate } from '../utils/fareEstimate'
 import { formatDuration, formatDistance } from '../utils/routing'
 
+const LANDMARKS: { label: string; icon: string; coords: [number, number] }[] = [
+  { label: 'Bahnhof',   icon: '🚉', coords: [47.6605, 9.1751] },
+  { label: 'Altstadt',  icon: '🏛️', coords: [47.6638, 9.1768] },
+  { label: 'Universität', icon: '🎓', coords: [47.6957, 9.1918] },
+  { label: 'Hafen',     icon: '⚓', coords: [47.6612, 9.1860] },
+  { label: 'Lago',      icon: '🛍️', coords: [47.6574, 9.1793] },
+  { label: 'Imperia',   icon: '🗿', coords: [47.6598, 9.1768] },
+]
+
 type Props = {
   onlineDrivers: number | null
   isLoading: boolean
@@ -74,6 +83,11 @@ export function GuestBooking({ onlineDrivers, isLoading, error, onRequest }: Pro
     }
   }
 
+  const selectLandmark = (label: string, coords: [number, number]) => {
+    setDestDisplay(label)
+    setEstimateDest(coords)
+  }
+
   const handleRequest = async () => {
     setGeocodeError(null)
     setGeocoding(true)
@@ -83,7 +97,7 @@ export function GuestBooking({ onlineDrivers, isLoading, error, onRequest }: Pro
       if (!ll) { setGeocodeError('Startort konnte nicht gefunden werden.'); setGeocoding(false); return }
       pickup = `${ll[0]}, ${ll[1]}`
     }
-    const ll = await geocode(destDisplay.trim())
+    const ll = estimateDest ?? await geocode(destDisplay.trim())
     if (!ll) { setGeocodeError('Ziel konnte nicht gefunden werden.'); setGeocoding(false); return }
     setGeocoding(false)
     await onRequest(pickup, `${ll[0]}, ${ll[1]}`)
@@ -134,6 +148,20 @@ export function GuestBooking({ onlineDrivers, isLoading, error, onRequest }: Pro
         </div>
       </div>
 
+      <div className="guest-landmarks" role="group" aria-label="Schnellziele">
+        {LANDMARKS.map(lm => (
+          <button
+            key={lm.label}
+            type="button"
+            className={`guest-landmark-chip${destDisplay === lm.label ? ' guest-landmark-chip--active' : ''}`}
+            onClick={() => selectLandmark(lm.label, lm.coords)}
+          >
+            <span>{lm.icon}</span>
+            {lm.label}
+          </button>
+        ))}
+      </div>
+
       {locateError && <p className="ride-error guest-idle__error">{locateError}</p>}
       {(error || geocodeError) && <p className="ride-error guest-idle__error">{error ?? geocodeError}</p>}
 
@@ -154,6 +182,7 @@ export function GuestBooking({ onlineDrivers, isLoading, error, onRequest }: Pro
       >
         <span>{geocoding ? 'Ort wird gesucht…' : isLoading ? 'Wird angefordert…' : 'Fahrer anfordern →'}</span>
       </button>
+
       {onlineDrivers !== null && (
         <span className={`guest-drivers-online${onlineDrivers === 0 ? ' guest-drivers-online--none' : ''}`}>
           <span className="guest-drivers-online__dot" />

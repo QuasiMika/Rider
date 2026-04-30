@@ -43,6 +43,8 @@ export function GuestRideActive({ ride, userId, onConfirmPickup }: Props) {
   const [selectedStars, setSelectedStars] = useState(0)
   const [reviewSubmitting, setReviewSubmitting] = useState(false)
   const [reviewError, setReviewError] = useState<string | null>(null)
+  const [paymentLoading, setPaymentLoading] = useState(false)
+  const [paymentError, setPaymentError] = useState<string | null>(null)
 
   const { pickupName, destName } = useResolvedNames(ride.id, ride.pickup_location, ride.destination)
 
@@ -88,6 +90,20 @@ export function GuestRideActive({ ride, userId, onConfirmPickup }: Props) {
     await onConfirmPickup()
     setSliderValue(0)
     setConfirming(false)
+  }
+
+  const handlePayment = async () => {
+    setPaymentLoading(true)
+    setPaymentError(null)
+    const { data, error } = await supabase.functions.invoke('create-checkout', {
+      body: { ride_id: ride.id },
+    })
+    if (error || !data?.url) {
+      setPaymentError('Zahlung konnte nicht gestartet werden.')
+      setPaymentLoading(false)
+      return
+    }
+    window.location.href = data.url
   }
 
   const submitReview = async () => {
@@ -177,6 +193,19 @@ export function GuestRideActive({ ride, userId, onConfirmPickup }: Props) {
               </div>
             </div>
           )}
+
+          <div className="guest-payment">
+            <div className="guest-payment__title">💳 Fahrt bezahlen</div>
+            <p className="guest-payment__sub">Bezahl bequem per Karte über Stripe.</p>
+            {paymentError && <p className="ride-error">{paymentError}</p>}
+            <button
+              className="rm-btn guest-payment__btn"
+              onClick={handlePayment}
+              disabled={paymentLoading}
+            >
+              {paymentLoading ? 'Wird gestartet…' : 'Mit Karte bezahlen →'}
+            </button>
+          </div>
         </div>
       )}
 
