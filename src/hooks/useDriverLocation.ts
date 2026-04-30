@@ -53,7 +53,7 @@ export function useDriverLocation(rideId: string | null, pickupLocation?: string
               setApproachPolyline(approach.polyline)
             }
           }
-
+          
           channel.send({
             type: 'broadcast',
             event: 'driver-location',

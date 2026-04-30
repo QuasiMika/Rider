@@ -13,23 +13,57 @@
 
 ```
 src/
-  auth/         AuthUser.tsx        — AuthContext + useAuth hook
-  components/   DriverPanel.tsx     — Driver UI (request list → accept → ride)
-                GuestPanel.tsx      — Guest UI (request → waiting → ride)
-                RideMatchingApp.tsx — Routes to Driver/GuestPanel by DB role
-                AppLayout.tsx       — Nav wrapper (theme toggle, sign-out)
-                RideMatching.css    — Styles shared by ride flow components
-                GuestPanel.css      — Guest-specific animations
-  hooks/        useDriverRequests.ts — Driver: fetch requests, realtime, accept
-                useRideMatching.ts   — Guest: create request, realtime ride watch
+  auth/         AuthUser.tsx          — AuthContext + useAuth hook
+  components/   RideMatchingApp.tsx   — Reads DB role → renders DriverPanel or GuestPanel
+                AppLayout.tsx         — Nav wrapper (theme toggle, sign-out)
+                RideMatching.css      — Styles shared across all ride-flow components
+                GuestPanel.css        — Guest-specific styles (booking page, radar, reviews)
+                │
+                │  Guest panel — split by UI state
+                ├─ GuestPanel.tsx      — Coordinator: useRideMatching + presence subscribe + state routing
+                ├─ GuestBooking.tsx    — idle: booking form, geocoding, GPS locate (own local state)
+                ├─ GuestSearching.tsx  — waiting: radar animation + cancel button
+                └─ GuestRideActive.tsx — matched: driver info, map, pickup slider, review form (own local state)
+                │
+                │  Driver panel — split by UI state
+                ├─ DriverPanel.tsx     — Coordinator: useDriverRequests + presence track + state routing
+                ├─ DriverWaiting.tsx   — browsing: pulse animation when idle, request list + RequestItem
+                └─ DriverRideActive.tsx — matched: guest info, map, GPS broadcast, complete slider (own local state)
+
+  hooks/        useDriverRequests.ts  — Driver: fetch requests, realtime, accept (exports RequestWithProfile)
+                useRideMatching.ts    — Guest: create request, realtime ride watch
+                useDriverLocation.ts  — Broadcasts driver GPS position via Supabase broadcast channel
+                useResolvedNames.ts   — Reverse-geocodes pickup/destination coords to display names
   pages/        Login.tsx, LandingPage.tsx, Profil.tsx, Help.tsx, ...
-  types/        ride.ts             — Shared TypeScript types
-  utils/        supabase.ts         — Supabase client singleton
+  types/        ride.ts               — Shared TypeScript types
+  utils/        supabase.ts           — Supabase client singleton
 
 supabase/
   migrations/   Applied in order; do not edit applied migrations
   functions/    Deno edge functions (match-ride, accept-ride)
 ```
+
+### Component state ownership
+
+Each coordinator (GuestPanel, DriverPanel) owns only the state that must survive a panel switch or drives the routing decision. Sub-components own their own local state.
+
+| Component | Owns |
+|-----------|------|
+| `GuestPanel` | `status`, `currentRide`, `onlineDrivers` (presence count) |
+| `GuestBooking` | input text, geocoding, GPS locating |
+| `GuestRideActive` | driver profile, driver position, ETA, pickup slider, review |
+| `DriverPanel` | `status`, `currentRide`, presence channel (track self as online) |
+| `DriverWaiting` | — (stateless, all props from parent) |
+| `DriverRideActive` | guest profile, complete slider, `useDriverLocation` |
+
+### Realtime channels
+
+| Channel | Purpose |
+|---------|---------|
+| `drivers-online` | Presence — drivers track themselves; guests count presences for "X Fahrer online" badge |
+| `ride-location:<rideId>` | Broadcast — driver sends GPS updates; guest receives position + ETA |
+| `guest-requests-driver-<driverId>` | Postgres changes — driver sees new/removed guest requests |
+| `rides-driver-<userId>` / `rides-guest-<userId>` | Postgres changes — both sides detect ride INSERT/UPDATE |
 
 ---
 
@@ -58,7 +92,7 @@ Ephemeral — deleted when a driver accepts.
 Unique index: one `'waiting'` row per guest.
 
 ### `driver_availability`
-Legacy — no longer written by the app. Kept for schema compatibility with `atomic_match_ride`.
+Written by `useRideMatching.submitAvailability` (driver role). Presence channel (`drivers-online`) is the live online-count source for guests; this table is the durable fallback and is read by `atomic_match_ride`.
 
 ### `rides`
 Source of truth.
@@ -157,3 +191,10 @@ Applied in filename order. Never edit an already-applied migration; add a new on
 | 20240101000000_ride_matching.sql | Initial tables, RLS, `atomic_match_ride` function |
 | 20240102000000_ride_matching_cleanup.sql | Unique indexes, updated `atomic_match_ride` to DELETE instead of UPDATE |
 | 20240103000000_ride_accept.sql | `accept_ride` function, driver SELECT policy on `guest_requests`, adds table to realtime |
+| 20240104000000_guest_request_destination.sql | Adds `destination` column to `guest_requests` |
+| 20240105000000_ride_locations.sql | Pickup/destination columns on `rides`, location tracking infrastructure |
+| 20240106000000_pickup_status.sql | `picked_up` ride status, `confirm_pickup` RPC |
+| 20240107000000_complete_ride.sql | `complete_ride` RPC, `actual_end_location` column |
+| 20240108000000_ride_reports.sql | `ride_reports` table + RLS |
+| 20240109000000_ride_reviews.sql | `ride_reviews` table (stars) + RLS |
+| 20240110000000_driver_availability_guest_read.sql | SELECT policy so guests can read available drivers; adds table to realtime publication |

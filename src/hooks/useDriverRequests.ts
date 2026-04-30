@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../utils/supabase'
 import type { Ride, AcceptResult } from '../types/ride'
 
-type RequestWithProfile = {
+export type RequestWithProfile = {
   id: string
   guest_id: string
   created_at: string

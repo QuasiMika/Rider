@@ -4,7 +4,7 @@
 .profil {
   display: flex;
   flex-direction: column;
-  min-height: 100svh;
+  flex: 1;
   background: var(--bg);
   position: relative;
 }
