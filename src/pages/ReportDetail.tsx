@@ -4,22 +4,17 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons'
 import { useAuth } from '../auth/AuthUser'
 import { useResolvedNames } from '../hooks/useResolvedNames'
-import { supabase } from '../utils/supabase'
+import { dbService } from '../services'
+import type { ReportRow } from '../services'
 import type { Ride } from '../types/ride'
 import './ReportDetail.css'
-
-type Report = {
-  id: string
-  notes: string | null
-  created_at: string
-}
 
 export default function ReportDetail() {
   const { rideId } = useParams<{ rideId: string }>()
   const { user } = useAuth()
   const navigate = useNavigate()
 
-  const [report, setReport] = useState<Report | null>(null)
+  const [report, setReport] = useState<ReportRow | null>(null)
   const [ride, setRide] = useState<Ride | null>(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
@@ -27,20 +22,11 @@ export default function ReportDetail() {
   useEffect(() => {
     if (!user || !rideId) return
     Promise.all([
-      supabase
-        .from('ride_reports')
-        .select('id, notes, created_at')
-        .eq('ride_id', rideId)
-        .eq('reporter_id', user.id)
-        .maybeSingle(),
-      supabase
-        .from('rides')
-        .select('id, driver_id, guest_id, status, pickup_location, destination, actual_end_location, created_at')
-        .eq('id', rideId)
-        .maybeSingle(),
-    ]).then(([reportRes, rideRes]) => {
-      if (!reportRes.data) { setNotFound(true) }
-      else { setReport(reportRes.data); setRide(rideRes.data as Ride | null) }
+      dbService.getReportDetail(rideId, user.id),
+      dbService.getRideById(rideId),
+    ]).then(([reportData, rideData]) => {
+      if (!reportData) { setNotFound(true) }
+      else { setReport(reportData); setRide(rideData) }
       setLoading(false)
     })
   }, [user, rideId])
@@ -79,7 +65,6 @@ export default function ReportDetail() {
       </button>
 
       <div className="report-detail__inner">
-        {/* Status banner */}
         <div className="report-detail__banner">
           <span className="report-detail__banner-icon">🔍</span>
           <div>
@@ -98,7 +83,6 @@ export default function ReportDetail() {
           </div>
         </div>
 
-        {/* Route */}
         <div className="report-detail__card">
           <h2 className="report-detail__section-title">Fahrt</h2>
           {ride && (
@@ -139,7 +123,6 @@ export default function ReportDetail() {
           </div>
         </div>
 
-        {/* Notes */}
         <div className="report-detail__card">
           <h2 className="report-detail__section-title">Deine Anmerkungen</h2>
           {report?.notes ? (

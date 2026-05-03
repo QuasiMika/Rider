@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../utils/supabase'
+import { dbService } from '../services'
 import { useDriverLocation } from '../hooks/useDriverLocation'
 import { useResolvedNames } from '../hooks/useResolvedNames'
 import { RideMap } from './RideMap'
@@ -16,9 +16,7 @@ function openMapsToLocation(location: string) {
   window.open(url, '_blank')
 }
 
-type Props = {
-  ride: Ride
-}
+type Props = { ride: Ride }
 
 export function DriverRideActive({ ride }: Props) {
   const [guest, setGuest] = useState<PartnerProfile | null>(null)
@@ -30,21 +28,17 @@ export function DriverRideActive({ ride }: Props) {
 
   useEffect(() => {
     if (!ride.guest_id) return
-    supabase
-      .from('user_profile')
-      .select('first_name, family_name')
-      .eq('user_id', ride.guest_id)
-      .single()
-      .then(({ data }) => { if (data) setGuest(data) })
+    dbService.getUserProfiles([ride.guest_id]).then(profiles => {
+      if (profiles[0]) setGuest(profiles[0])
+    })
   }, [ride.guest_id])
 
   const handleCompleteRelease = async () => {
     if (completeSlider < 90) { setCompleteSlider(0); return }
     setCompleting(true)
     const location = driverPosition ? `${driverPosition[0]},${driverPosition[1]}` : ''
-    await supabase.rpc('complete_ride', { p_ride_id: ride.id, p_location: location })
-    setCompleteSlider(0)
-    setCompleting(false)
+    await dbService.completeRide(ride.id, location)
+    setCompleteSlider(0); setCompleting(false)
   }
 
   const guestName = guest
@@ -108,19 +102,13 @@ export function DriverRideActive({ ride }: Props) {
           )}
 
           {ride.status === 'pending' && ride.pickup_location && (
-            <button
-              className="rm-btn rm-btn--maps"
-              onClick={() => openMapsToLocation(ride.pickup_location!)}
-            >
+            <button className="rm-btn rm-btn--maps" onClick={() => openMapsToLocation(ride.pickup_location!)}>
               📍 Navigation zum Abholort
             </button>
           )}
 
           {ride.status === 'picked_up' && ride.destination && (
-            <button
-              className="rm-btn rm-btn--maps"
-              onClick={() => openMapsToLocation(ride.destination!)}
-            >
+            <button className="rm-btn rm-btn--maps" onClick={() => openMapsToLocation(ride.destination!)}>
               🗺️ Navigation zum Ziel
             </button>
           )}
@@ -133,8 +121,7 @@ export function DriverRideActive({ ride }: Props) {
               <input
                 type="range"
                 className="pickup-slider"
-                min={0}
-                max={100}
+                min={0} max={100}
                 value={completeSlider}
                 onChange={e => setCompleteSlider(Number(e.target.value))}
                 onMouseUp={handleCompleteRelease}

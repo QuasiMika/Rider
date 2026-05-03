@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { supabase } from '../utils/supabase'
+import { realtimeService } from '../services'
 import { geocode } from '../utils/geocoding'
 import { router, LIVE_ROUTING } from '../utils/routing'
 import type { LatLng } from '../utils/geocoding'
@@ -7,12 +7,10 @@ import type { LatLng } from '../utils/geocoding'
 export function useDriverLocation(rideId: string | null, pickupLocation?: string) {
   const pickupCoordsRef = useRef<LatLng | null>(null)
   const approachCalculatedRef = useRef(false)
-  // Persist last-calculated polyline so every broadcast includes it (not just the first).
   const approachPolylineRef = useRef<LatLng[] | null>(null)
   const [driverPosition, setDriverPosition] = useState<LatLng | null>(null)
   const [approachPolyline, setApproachPolyline] = useState<LatLng[] | null>(null)
 
-  // Geocode pickup once whenever it changes
   useEffect(() => {
     if (!pickupLocation) return
     const controller = new AbortController()
@@ -27,10 +25,11 @@ export function useDriverLocation(rideId: string | null, pickupLocation?: string
 
     approachCalculatedRef.current = false
     approachPolylineRef.current = null
-    const channel = supabase.channel(`ride-location:${rideId}`)
+
+    const broadcast = realtimeService.createLocationBroadcast(rideId)
     let watchId: number | null = null
 
-    channel.subscribe(status => {
+    broadcast.subscribe(status => {
       if (status !== 'SUBSCRIBED') return
 
       watchId = navigator.geolocation.watchPosition(
@@ -53,26 +52,22 @@ export function useDriverLocation(rideId: string | null, pickupLocation?: string
               setApproachPolyline(approach.polyline)
             }
           }
-          
-          channel.send({
-            type: 'broadcast',
-            event: 'driver-location',
-            payload: {
-              lat: coords.latitude,
-              lng: coords.longitude,
-              etaSeconds,
-              approachPolyline: approachPolylineRef.current,
-            },
+
+          broadcast.send({
+            lat: coords.latitude,
+            lng: coords.longitude,
+            etaSeconds,
+            approachPolyline: approachPolylineRef.current,
           })
         },
         err => console.warn('[useDriverLocation]', err.message),
-        { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
+        { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 },
       )
     })
 
     return () => {
       if (watchId !== null) navigator.geolocation.clearWatch(watchId)
-      supabase.removeChannel(channel)
+      broadcast.close()
     }
   }, [rideId])
 

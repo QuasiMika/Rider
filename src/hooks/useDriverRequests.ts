@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { supabase } from '../utils/supabase'
+import { dbService, realtimeService, functionsService } from '../services'
+import type { GuestRequestRow } from '../services'
 import type { Ride, AcceptResult } from '../types/ride'
 
 export type RequestWithProfile = {
@@ -23,18 +24,22 @@ type UseDriverRequestsResult = {
   acceptRequest: (requestId: string) => Promise<void>
 }
 
-async function fetchProfile(guestId: string): Promise<{ guestName: string; guestInitials: string }> {
-  const { data } = await supabase
-    .from('user_profile')
-    .select('first_name, family_name')
-    .eq('user_id', guestId)
-    .single()
-
-  const fullName = data ? `${data.first_name ?? ''} ${data.family_name ?? ''}`.trim() : ''
-  const initials = data
-    ? `${data.first_name?.[0] ?? ''}${data.family_name?.[0] ?? ''}`.toUpperCase() || '?'
+async function enrichRow(row: GuestRequestRow): Promise<RequestWithProfile> {
+  const profiles = await dbService.getUserProfiles([row.guest_id])
+  const p = profiles[0]
+  const fullName = p ? `${p.first_name ?? ''} ${p.family_name ?? ''}`.trim() : ''
+  const initials = p
+    ? `${p.first_name?.[0] ?? ''}${p.family_name?.[0] ?? ''}`.toUpperCase() || '?'
     : '?'
-  return { guestName: fullName || 'Gast', guestInitials: initials }
+  return {
+    id: row.id,
+    guest_id: row.guest_id,
+    created_at: row.created_at,
+    pickupLocation: row.pickup_location ?? '',
+    destination: row.destination ?? '',
+    guestName: fullName || 'Gast',
+    guestInitials: initials,
+  }
 }
 
 export function useDriverRequests(driverId: string): UseDriverRequestsResult {
@@ -44,43 +49,24 @@ export function useDriverRequests(driverId: string): UseDriverRequestsResult {
   const [isAccepting, setIsAccepting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // On mount: restore active ride if driver already has one
+  // Restore active ride on mount
   useEffect(() => {
     if (!driverId) return
-    supabase
-      .from('rides')
-      .select('*')
-      .eq('driver_id', driverId)
-      .in('status', ['pending', 'picked_up', 'active'])
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) {
-          setCurrentRide(data as Ride)
-          setStatus('matched')
-        }
-      })
+    dbService.getActiveRide(driverId, 'driver_id').then((ride) => {
+      if (ride) { setCurrentRide(ride); setStatus('matched') }
+    })
   }, [driverId])
 
-  // Initial fetch of waiting requests + their guest profiles
+  // Initial fetch of waiting requests + profiles
   useEffect(() => {
     if (!driverId) return
-
     const load = async () => {
-      const { data: rows } = await supabase
-        .from('guest_requests')
-        .select('id, guest_id, created_at, pickup_location, destination')
-        .eq('status', 'waiting')
-        .order('created_at', { ascending: true })
-
-      if (!rows || rows.length === 0) { setRequests([]); return }
+      const rows = await dbService.getWaitingGuestRequests()
+      if (rows.length === 0) { setRequests([]); return }
 
       const guestIds = rows.map(r => r.guest_id)
-      const { data: profiles } = await supabase
-        .from('user_profile')
-        .select('user_id, first_name, family_name')
-        .in('user_id', guestIds)
-
-      const profileMap = new Map(profiles?.map(p => [p.user_id, p]) ?? [])
+      const profiles = await dbService.getUserProfiles(guestIds)
+      const profileMap = new Map(profiles.map(p => [p.user_id, p]))
 
       setRequests(rows.map(r => {
         const p = profileMap.get(r.guest_id)
@@ -99,70 +85,31 @@ export function useDriverRequests(driverId: string): UseDriverRequestsResult {
         }
       }))
     }
-
     load()
   }, [driverId])
 
-  // Realtime: watch guest_requests for new/removed entries
+  // Realtime: guest_requests INSERT / DELETE
   useEffect(() => {
     if (!driverId) return
-
-    const channel = supabase
-      .channel(`guest-requests-driver-${driverId}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'guest_requests' },
-        async (payload) => {
-          const row = payload.new as { id: string; guest_id: string; created_at: string; pickup_location: string | null; destination: string | null }
-          const profile = await fetchProfile(row.guest_id)
-          setRequests(prev => [...prev, {
-            id: row.id,
-            guest_id: row.guest_id,
-            created_at: row.created_at,
-            pickupLocation: row.pickup_location ?? '',
-            destination: row.destination ?? '',
-            ...profile,
-          }])
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'DELETE', schema: 'public', table: 'guest_requests' },
-        (payload) => {
-          const deletedId = (payload.old as { id: string }).id
-          setRequests(prev => prev.filter(r => r.id !== deletedId))
-        }
-      )
-      .subscribe()
-
-    return () => { supabase.removeChannel(channel) }
+    return realtimeService.subscribeGuestRequests(
+      `guest-requests-driver-${driverId}`,
+      async (row) => {
+        const enriched = await enrichRow(row)
+        setRequests(prev => [...prev, enriched])
+      },
+      (deletedId) => setRequests(prev => prev.filter(r => r.id !== deletedId)),
+    )
   }, [driverId])
 
-  // Realtime: watch for a ride being assigned to this driver
+  // Realtime: rides INSERT/UPDATE for this driver
   useEffect(() => {
     if (!driverId) return
-
-    const channel = supabase
-      .channel(`rides-driver-accept-${driverId}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'rides', filter: `driver_id=eq.${driverId}` },
-        (payload) => {
-          setCurrentRide(payload.new as Ride)
-          setStatus('matched')
-          setIsAccepting(false)
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'rides', filter: `driver_id=eq.${driverId}` },
-        (payload) => {
-          setCurrentRide(payload.new as Ride)
-        }
-      )
-      .subscribe()
-
-    return () => { supabase.removeChannel(channel) }
+    return realtimeService.subscribeRideByDriverId(
+      `rides-driver-accept-${driverId}`,
+      driverId,
+      (ride) => { setCurrentRide(ride); setStatus('matched'); setIsAccepting(false) },
+      (ride) => setCurrentRide(ride),
+    )
   }, [driverId])
 
   const acceptRequest = useCallback(async (requestId: string) => {
@@ -171,23 +118,12 @@ export function useDriverRequests(driverId: string): UseDriverRequestsResult {
     setError(null)
 
     try {
-      const { data: { session } } = await supabase.auth.getSession()
+      const result: AcceptResult = await functionsService.invokeAcceptRide(requestId)
 
-      const { data, error: fnError } = await supabase.functions.invoke<AcceptResult>('accept-ride', {
-        body: { requestId },
-        headers: { Authorization: `Bearer ${session?.access_token}` },
-      })
-
-      if (fnError) throw new Error(fnError.message)
-
-      if (data?.accepted && data.ride_id) {
-        // Realtime will update state; fetch as fallback
-        const { data: ride } = await supabase.from('rides').select('*').eq('id', data.ride_id).single()
-        if (ride) {
-          setCurrentRide(ride as Ride)
-          setStatus('matched')
-        }
-      } else if (data && !data.accepted) {
+      if (result.accepted && result.ride_id) {
+        const ride = await dbService.getRideById(result.ride_id)
+        if (ride) { setCurrentRide(ride); setStatus('matched') }
+      } else if (!result.accepted) {
         setError('Diese Anfrage wurde bereits von einem anderen Fahrer angenommen.')
         setRequests(prev => prev.filter(r => r.id !== requestId))
       }

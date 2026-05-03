@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthUser'
-import { supabase } from '../utils/supabase'
+import { dbService } from '../services'
 import './LandingPage.css'
 
 type PublicStats = {
@@ -18,9 +18,7 @@ export default function LandingPage() {
   const [stats, setStats] = useState<PublicStats | null>(null)
 
   useEffect(() => {
-    supabase.rpc('get_public_stats').then(({ data }) => {
-      if (data) setStats(data as PublicStats)
-    })
+    dbService.getPublicStats().then(data => { if (data) setStats(data) })
   }, [])
 
   return (

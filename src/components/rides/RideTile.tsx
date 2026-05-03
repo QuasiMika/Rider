@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useResolvedNames } from '../../hooks/useResolvedNames'
-import { supabase } from '../../utils/supabase'
+import { dbService } from '../../services'
 import type { Ride } from '../../types/ride'
 import './RideTile.css'
 
@@ -24,34 +24,19 @@ export function RideTile({ ride, userId, userRole, onClick }: Props) {
 
   useEffect(() => {
     if (!partnerId) return
-    supabase
-      .from('user_profile')
-      .select('first_name, family_name')
-      .eq('user_id', partnerId)
-      .single()
-      .then(({ data }) => {
-        if (data) setPartnerName(`${data.first_name ?? ''} ${data.family_name ?? ''}`.trim() || '–')
-      })
+    dbService.getUserProfiles([partnerId]).then(profiles => {
+      if (profiles[0]) {
+        setPartnerName(`${profiles[0].first_name ?? ''} ${profiles[0].family_name ?? ''}`.trim() || '–')
+      }
+    })
   }, [partnerId])
 
   useEffect(() => {
-    supabase
-      .from('ride_reviews')
-      .select('stars')
-      .eq('ride_id', ride.id)
-      .eq('reviewer_id', userId)
-      .maybeSingle()
-      .then(({ data }) => setStars(data?.stars ?? null))
+    dbService.getReview(ride.id, userId).then(r => setStars(r?.stars ?? null))
   }, [ride.id, userId])
 
   useEffect(() => {
-    supabase
-      .from('ride_reports')
-      .select('id')
-      .eq('ride_id', ride.id)
-      .eq('reporter_id', userId)
-      .maybeSingle()
-      .then(({ data }) => { if (data) setIsReported(true) })
+    dbService.getReportExists(ride.id, userId).then(exists => { if (exists) setIsReported(true) })
   }, [ride.id, userId])
 
   const date = new Date(ride.created_at).toLocaleDateString('de-DE', {

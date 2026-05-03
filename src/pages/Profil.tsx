@@ -4,7 +4,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons'
 import { useAuth } from '../auth/AuthUser'
 import { useRideMatching } from '../hooks/useRideMatching'
-import { supabase } from '../utils/supabase'
+import { dbService } from '../services'
+import type { UserProfile } from '../services'
 import type { Ride } from '../types/ride'
 import { RideTile } from '../components/rides/RideTile'
 import { RideDetailDialog, StarDisplay } from '../components/rides/RideDetailDialog'
@@ -59,16 +60,6 @@ function RideCta({ userId, role }: { userId: string; role: 'driver' | 'guest' })
   )
 }
 
-// ─── Main profile page ────────────────────────────────────────────────────────
-
-type UserProfile = {
-  first_name: string | null
-  family_name: string | null
-  role: 'customer' | 'driver'
-  currently_working: boolean
-  created_at: string
-}
-
 export default function Profil() {
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -87,44 +78,29 @@ export default function Profil() {
 
   useEffect(() => {
     if (!user) return
-    supabase
-      .from('user_profile')
-      .select('first_name, family_name, role, currently_working, created_at')
-      .eq('user_id', user.id)
-      .single()
-      .then(({ data, error }) => {
-        if (error) setError(error.message)
-        else setProfile(data)
-        setLoading(false)
-      })
+    dbService.getUserProfile(user.id).then(({ data, error: err }) => {
+      if (err) setError(err.message)
+      else setProfile(data)
+      setLoading(false)
+    })
   }, [user])
 
   useEffect(() => {
     if (!user) return
-    supabase
-      .from('ride_reviews')
-      .select('stars')
-      .eq('reviewee_id', user.id)
-      .then(({ data }) => {
-        if (data && data.length > 0) {
-          const avg = data.reduce((s, r) => s + r.stars, 0) / data.length
-          setReviewStats({ avg, count: data.length })
-        } else {
-          setReviewStats({ avg: 0, count: 0 })
-        }
-      })
+    dbService.getReviews(user.id).then(data => {
+      if (data.length > 0) {
+        const avg = data.reduce((s, r) => s + r.stars, 0) / data.length
+        setReviewStats({ avg, count: data.length })
+      } else {
+        setReviewStats({ avg: 0, count: 0 })
+      }
+    })
   }, [user])
 
   useEffect(() => {
     if (!user || !profile) return
     const col = profile.role === 'driver' ? 'driver_id' : 'guest_id'
-    supabase
-      .from('rides')
-      .select('id, driver_id, guest_id, status, pickup_location, destination, actual_end_location, created_at')
-      .eq(col, user.id)
-      .eq('status', 'completed')
-      .order('created_at', { ascending: false })
-      .then(({ data }) => { if (data) setCompletedRides(data as Ride[]) })
+    dbService.getCompletedRides(user.id, col).then(data => setCompletedRides(data))
   }, [user, profile])
 
   const initials = profile
@@ -209,10 +185,7 @@ export default function Profil() {
               </div>
             </div>
 
-            <RideCta
-              userId={user?.id ?? ''}
-              role={userRole}
-            />
+            <RideCta userId={user?.id ?? ''} role={userRole} />
           </div>
 
           <div className="profil-rides">

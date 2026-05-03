@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthUser'
 import { useRideMatching } from '../hooks/useRideMatching'
-import { supabase } from '../utils/supabase'
+import { presenceService } from '../services'
 import { GuestBooking } from './GuestBooking'
 import { GuestSearching } from './GuestSearching'
 import { GuestRideActive } from './GuestRideActive'
@@ -20,24 +20,13 @@ export function GuestPanel() {
 
   useEffect(() => {
     if (!paymentSuccess) return
-    const t = setTimeout(() => {
-      setSearchParams({}, { replace: true })
-    }, 4000)
+    const t = setTimeout(() => { setSearchParams({}, { replace: true }) }, 4000)
     return () => clearTimeout(t)
   }, [paymentSuccess, setSearchParams])
 
   useEffect(() => {
     if (status !== 'idle') return
-    const channel = supabase.channel('drivers-online')
-    channel
-      .on('presence', { event: 'sync' }, () => {
-        setOnlineDrivers(Object.keys(channel.presenceState()).length)
-      })
-      .subscribe()
-    return () => {
-      setOnlineDrivers(null)
-      supabase.removeChannel(channel)
-    }
+    return presenceService.subscribeOnlineCount('drivers-online', setOnlineDrivers)
   }, [status])
 
   return (

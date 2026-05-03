@@ -1,19 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { supabase } from '../utils/supabase'
+import { dbService } from '../services'
 import './PublicProfile.css'
 
-type Profile = {
-  first_name: string | null
-  family_name: string | null
-  role: 'customer' | 'driver'
-  created_at: string
-}
-
-type ReviewStats = {
-  avg: number
-  count: number
-}
+type ReviewStats = { avg: number; count: number }
 
 function StarDisplay({ value, count }: { value: number; count: number }) {
   const filled = Math.round(value)
@@ -31,7 +21,7 @@ export default function PublicProfile() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
 
-  const [profile, setProfile] = useState<Profile | null>(null)
+  const [profile, setProfile] = useState<{ first_name: string | null; family_name: string | null; role: 'customer' | 'driver'; created_at: string } | null>(null)
   const [reviewStats, setReviewStats] = useState<ReviewStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
@@ -40,21 +30,13 @@ export default function PublicProfile() {
     if (!id) return
 
     const load = async () => {
-      const { data: p, error } = await supabase
-        .from('user_profile')
-        .select('first_name, family_name, role, created_at')
-        .eq('user_id', id)
-        .maybeSingle()
+      const { data: p } = await dbService.getUserProfile(id)
 
-      if (error || !p) { setNotFound(true); setLoading(false); return }
+      if (!p) { setNotFound(true); setLoading(false); return }
       setProfile(p)
 
-      const { data: reviews } = await supabase
-        .from('ride_reviews')
-        .select('stars')
-        .eq('reviewee_id', id)
-
-      if (reviews && reviews.length > 0) {
+      const reviews = await dbService.getReviews(id)
+      if (reviews.length > 0) {
         const avg = reviews.reduce((s, r) => s + r.stars, 0) / reviews.length
         setReviewStats({ avg, count: reviews.length })
       } else {

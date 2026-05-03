@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useResolvedNames } from '../../hooks/useResolvedNames'
-import { supabase } from '../../utils/supabase'
+import { dbService } from '../../services'
 import type { Ride } from '../../types/ride'
 import './RideDetailDialog.css'
 
@@ -70,32 +70,17 @@ export function RideDetailDialog({ ride, userId, userRole, onClose }: Props) {
 
   useEffect(() => {
     if (!partnerId) return
-    supabase
-      .from('user_profile')
-      .select('first_name, family_name')
-      .eq('user_id', partnerId)
-      .single()
-      .then(({ data }) => { if (data) setPartner(data) })
+    dbService.getUserProfiles([partnerId]).then(profiles => {
+      if (profiles[0]) setPartner(profiles[0])
+    })
   }, [partnerId])
 
   useEffect(() => {
-    supabase
-      .from('ride_reviews')
-      .select('stars')
-      .eq('ride_id', ride.id)
-      .eq('reviewer_id', userId)
-      .maybeSingle()
-      .then(({ data }) => setExistingStars(data?.stars ?? null))
+    dbService.getReview(ride.id, userId).then(r => setExistingStars(r?.stars ?? null))
   }, [ride.id, userId])
 
   useEffect(() => {
-    supabase
-      .from('ride_reports')
-      .select('id')
-      .eq('ride_id', ride.id)
-      .eq('reporter_id', userId)
-      .maybeSingle()
-      .then(({ data }) => { if (data) setReported(true) })
+    dbService.getReportExists(ride.id, userId).then(exists => { if (exists) setReported(true) })
   }, [ride.id, userId])
 
   const partnerName = partner
@@ -106,33 +91,21 @@ export function RideDetailDialog({ ride, userId, userRole, onClose }: Props) {
 
   const submitReview = async () => {
     if (!selectedStars || !partnerId) return
-    setReviewSubmitting(true)
-    setReviewError(null)
-    const { error } = await supabase.from('ride_reviews').insert({
-      ride_id: ride.id,
-      reviewer_id: userId,
-      reviewee_id: partnerId,
-      stars: selectedStars,
-    })
+    setReviewSubmitting(true); setReviewError(null)
+    const { error } = await dbService.insertReview(ride.id, userId, partnerId, selectedStars)
     if (error) setReviewError(error.message)
     else setExistingStars(selectedStars)
     setReviewSubmitting(false)
   }
 
   const submitReport = async () => {
-    setSubmitting(true)
-    setReportError(null)
-    const { error } = await supabase.from('ride_reports').insert({
-      ride_id: ride.id,
-      reporter_id: userId,
-      notes: notes.trim() || null,
-    })
+    setSubmitting(true); setReportError(null)
+    const { error } = await dbService.insertReport(ride.id, userId, notes.trim() || null)
     if (error) {
       console.error('ride_reports insert failed:', error)
       setReportError(error.message)
     } else {
-      setReported(true)
-      setReportOpen(false)
+      setReported(true); setReportOpen(false)
     }
     setSubmitting(false)
   }
@@ -142,7 +115,6 @@ export function RideDetailDialog({ ride, userId, userRole, onClose }: Props) {
       <div className="ride-dialog" onClick={e => e.stopPropagation()}>
         <button className="ride-dialog__close" onClick={onClose} aria-label="Schließen">✕</button>
 
-        {/* Header */}
         <h2 className="ride-dialog__title">Fahrtdetails</h2>
         <div className="ride-dialog__date">
           {new Date(ride.created_at).toLocaleDateString('de-DE', {
@@ -150,7 +122,6 @@ export function RideDetailDialog({ ride, userId, userRole, onClose }: Props) {
           })}
         </div>
 
-        {/* Meta row: partner + existing rating */}
         <div className="ride-dialog__meta">
           {partnerId && (
             <div className="ride-dialog__partner">
@@ -165,7 +136,6 @@ export function RideDetailDialog({ ride, userId, userRole, onClose }: Props) {
           )}
         </div>
 
-        {/* Route */}
         <div className="ride-dialog__route">
           <div className="ride-dialog__loc">
             <span className="ride-dialog__loc-dot ride-dialog__loc-dot--from" />
@@ -191,10 +161,7 @@ export function RideDetailDialog({ ride, userId, userRole, onClose }: Props) {
                   </button>
                 )}
                 {reported && (
-                  <Link
-                    to={`/report/${ride.id}`}
-                    className="ride-dialog__reported-badge"
-                  >
+                  <Link to={`/report/${ride.id}`} className="ride-dialog__reported-badge">
                     ✓ Gemeldet →
                   </Link>
                 )}
@@ -216,7 +183,6 @@ export function RideDetailDialog({ ride, userId, userRole, onClose }: Props) {
           )}
         </div>
 
-        {/* Report form — expands when "Abweichung" badge is clicked */}
         {destinationDiffers && reportOpen && !reported && (
           <div className="ride-dialog__report">
             <p className="ride-dialog__report-hint">
@@ -251,7 +217,6 @@ export function RideDetailDialog({ ride, userId, userRole, onClose }: Props) {
         )}
         {reportError && <p className="ride-dialog__error ride-dialog__error--standalone">{reportError}</p>}
 
-        {/* Star rating form */}
         {existingStars === null && (
           <div className="ride-dialog__review">
             <span className="ride-dialog__section-title">{partnerLabel} bewerten</span>

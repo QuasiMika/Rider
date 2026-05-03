@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../utils/supabase'
+import { dbService, realtimeService, functionsService } from '../services'
+import type { DriverLocationPayload } from '../services'
 import { formatDuration } from '../utils/routing'
 import { useResolvedNames } from '../hooks/useResolvedNames'
 import { RideMap } from './RideMap'
@@ -50,72 +51,47 @@ export function GuestRideActive({ ride, userId, onConfirmPickup }: Props) {
 
   useEffect(() => {
     if (!ride.driver_id) return
-    supabase
-      .from('user_profile')
-      .select('first_name, family_name')
-      .eq('user_id', ride.driver_id)
-      .single()
-      .then(({ data }) => { if (data) setDriver(data) })
+    dbService.getUserProfiles([ride.driver_id]).then(profiles => {
+      if (profiles[0]) setDriver(profiles[0])
+    })
   }, [ride.driver_id])
 
   useEffect(() => {
-    setDriverPosition(null)
-    setEtaSeconds(null)
-    setApproachPolyline(null)
-    const channel = supabase
-      .channel(`ride-location:${ride.id}`)
-      .on('broadcast', { event: 'driver-location' }, ({ payload }) => {
-        setDriverPosition([payload.lat as number, payload.lng as number])
-        if (typeof payload.etaSeconds === 'number') setEtaSeconds(payload.etaSeconds)
-        if (Array.isArray(payload.approachPolyline)) setApproachPolyline(payload.approachPolyline)
-      })
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
+    setDriverPosition(null); setEtaSeconds(null); setApproachPolyline(null)
+    return realtimeService.subscribeDriverLocation(ride.id, (payload: DriverLocationPayload) => {
+      setDriverPosition([payload.lat, payload.lng])
+      if (typeof payload.etaSeconds === 'number') setEtaSeconds(payload.etaSeconds)
+      if (Array.isArray(payload.approachPolyline)) setApproachPolyline(payload.approachPolyline as [number, number][])
+    })
   }, [ride.id])
 
   useEffect(() => {
     if (ride.status !== 'completed' || !userId) return
-    supabase
-      .from('ride_reviews')
-      .select('stars')
-      .eq('ride_id', ride.id)
-      .eq('reviewer_id', userId)
-      .maybeSingle()
-      .then(({ data }) => setExistingStars(data?.stars ?? null))
+    dbService.getReview(ride.id, userId).then(r => setExistingStars(r?.stars ?? null))
   }, [ride.id, ride.status, userId])
 
   const handleSliderRelease = async () => {
     if (sliderValue < 90) { setSliderValue(0); return }
     setConfirming(true)
     await onConfirmPickup()
-    setSliderValue(0)
-    setConfirming(false)
+    setSliderValue(0); setConfirming(false)
   }
 
   const handlePayment = async () => {
-    setPaymentLoading(true)
-    setPaymentError(null)
-    const { data, error } = await supabase.functions.invoke('create-checkout', {
-      body: { ride_id: ride.id },
-    })
-    if (error || !data?.url) {
+    setPaymentLoading(true); setPaymentError(null)
+    const result = await functionsService.invokeCreateCheckout(ride.id)
+    if (!result?.url) {
       setPaymentError('Zahlung konnte nicht gestartet werden.')
       setPaymentLoading(false)
       return
     }
-    window.location.href = data.url
+    window.location.href = result.url
   }
 
   const submitReview = async () => {
     if (!selectedStars || !ride.driver_id || !userId) return
-    setReviewSubmitting(true)
-    setReviewError(null)
-    const { error } = await supabase.from('ride_reviews').insert({
-      ride_id: ride.id,
-      reviewer_id: userId,
-      reviewee_id: ride.driver_id,
-      stars: selectedStars,
-    })
+    setReviewSubmitting(true); setReviewError(null)
+    const { error } = await dbService.insertReview(ride.id, userId, ride.driver_id, selectedStars)
     if (error) setReviewError(error.message)
     else setExistingStars(selectedStars)
     setReviewSubmitting(false)
@@ -254,8 +230,7 @@ export function GuestRideActive({ ride, userId, onConfirmPickup }: Props) {
                 <input
                   type="range"
                   className="pickup-slider"
-                  min={0}
-                  max={100}
+                  min={0} max={100}
                   value={sliderValue}
                   onChange={e => setSliderValue(Number(e.target.value))}
                   onMouseUp={handleSliderRelease}

@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useAuth } from '../auth/AuthUser'
 import { useDriverRequests } from '../hooks/useDriverRequests'
-import { supabase } from '../utils/supabase'
+import { presenceService } from '../services'
 import { DriverWaiting } from './DriverWaiting'
 import { DriverRideActive } from './DriverRideActive'
 
@@ -13,13 +13,7 @@ export function DriverPanel() {
 
   useEffect(() => {
     if (!user?.id || status === 'matched') return
-    const channel = supabase.channel('drivers-online', {
-      config: { presence: { key: user.id } },
-    })
-    channel.subscribe(async (s) => {
-      if (s === 'SUBSCRIBED') await channel.track({ online: true })
-    })
-    return () => { supabase.removeChannel(channel) }
+    return presenceService.trackOnline('drivers-online', user.id)
   }, [user?.id, status])
 
   if (status === 'matched' && currentRide) {

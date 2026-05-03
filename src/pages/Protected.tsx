@@ -1,16 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { supabase } from '../utils/supabase'
+import { dbService } from '../services'
+import type { UserProfile } from '../services'
 import { useAuth } from '../auth/AuthUser'
 import './Protected.css'
-
-type UserProfile = {
-  first_name: string | null
-  family_name: string | null
-  role: 'customer' | 'driver'
-  currently_working: boolean
-  created_at: string
-}
 
 export default function Protected() {
   const { user, signOut } = useAuth()
@@ -20,17 +13,11 @@ export default function Protected() {
 
   useEffect(() => {
     if (!user) return
-
-    supabase
-      .from('user_profile')
-      .select('first_name, family_name, role, currently_working, created_at')
-      .eq('user_id', user.id)
-      .single()
-      .then(({ data, error }) => {
-        if (error) setError(error.message)
-        else setProfile(data)
-        setLoading(false)
-      })
+    dbService.getUserProfile(user.id).then(({ data, error: err }) => {
+      if (err) setError(err.message)
+      else setProfile(data)
+      setLoading(false)
+    })
   }, [user])
 
   return (
