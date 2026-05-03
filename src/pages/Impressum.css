@@ -1,0 +1,52 @@
+.impressum {
+  flex: 1;
+  background: var(--bg);
+  padding: 4rem 2rem;
+}
+
+.impressum__inner {
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.impressum__title {
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text-h);
+  margin: 0 0 2.5rem;
+}
+
+.impressum__section {
+  margin-bottom: 2rem;
+}
+
+.impressum__section h2 {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text);
+  margin: 0 0 0.5rem;
+}
+
+.impressum__section p {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text-h);
+  margin: 0;
+}
+
+.impressum__section--muted p {
+  color: var(--text);
+}
+
+@media (max-width: 640px) {
+  .impressum {
+    padding: 2rem 1.25rem calc(2rem + env(safe-area-inset-bottom) + 64px);
+  }
+
+  .impressum__title {
+    font-size: 26px;
+  }
+}
