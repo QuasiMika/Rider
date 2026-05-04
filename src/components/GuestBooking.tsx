@@ -32,12 +32,14 @@ export function GuestBooking({ onlineDrivers, isLoading, error, onRequest }: Pro
   const [estimatePickup, setEstimatePickup] = useState<[number, number] | null>(null)
   const [estimateDest, setEstimateDest] = useState<[number, number] | null>(null)
   const [fareResult, setFareResult] = useState<FareEstimate | null>(null)
+  const [fareLoading, setFareLoading] = useState(false)
 
   useEffect(() => {
-    if (!estimatePickup || !estimateDest) { setFareResult(null); return }
+    if (!estimatePickup || !estimateDest) { setFareResult(null); setFareLoading(false); return }
+    setFareLoading(true)
     const controller = new AbortController()
     estimateFare(estimatePickup, estimateDest, controller.signal).then(result => {
-      if (!controller.signal.aborted) setFareResult(result)
+      if (!controller.signal.aborted) { setFareResult(result); setFareLoading(false) }
     })
     return () => controller.abort()
   }, [estimatePickup, estimateDest])
@@ -164,6 +166,9 @@ export function GuestBooking({ onlineDrivers, isLoading, error, onRequest }: Pro
 
       {locateError && <p className="ride-error guest-idle__error">{locateError}</p>}
       {(error || geocodeError) && <p className="ride-error guest-idle__error">{error ?? geocodeError}</p>}
+      {estimatePickup && estimateDest && !fareLoading && !fareResult && (
+        <p className="ride-error guest-idle__error">Route konnte nicht berechnet werden.</p>
+      )}
 
       {fareResult && (
         <div className="guest-fare-estimate">
@@ -178,7 +183,7 @@ export function GuestBooking({ onlineDrivers, isLoading, error, onRequest }: Pro
       <button
         className="rm-btn guest-idle__cta"
         onClick={handleRequest}
-        disabled={isLoading || geocoding || !pickupDisplay.trim() || !destDisplay.trim()}
+        disabled={isLoading || geocoding || fareLoading || !pickupDisplay.trim() || !destDisplay.trim() || (!!estimatePickup && !!estimateDest && !fareResult)}
       >
         <span>{geocoding ? 'Ort wird gesucht…' : isLoading ? 'Wird angefordert…' : 'Fahrer anfordern →'}</span>
       </button>

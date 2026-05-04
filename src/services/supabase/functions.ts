@@ -1,5 +1,5 @@
 import { supabase } from './client'
-import type { FunctionsService } from '../types/functions'
+import type { FunctionsService, CreateRequestResult } from '../types/functions'
 import type { MatchResult, AcceptResult } from '../../types/ride'
 
 async function getAccessToken(): Promise<string | undefined> {
@@ -8,6 +8,16 @@ async function getAccessToken(): Promise<string | undefined> {
 }
 
 export const supabaseFunctionsService: FunctionsService = {
+  async invokeCreateRequest(pickupLocation, destination) {
+    const token = await getAccessToken()
+    const { data, error } = await supabase.functions.invoke<CreateRequestResult>('create-request', {
+      body: { pickupLocation, destination },
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (error) throw new Error(error.message)
+    return data ?? { id: '', price_eur: null }
+  },
+
   async invokeMatchRide(role, recordId) {
     const token = await getAccessToken()
     const { data, error } = await supabase.functions.invoke<MatchResult>('match-ride', {

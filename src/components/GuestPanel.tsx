@@ -2,21 +2,41 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthUser'
 import { useRideMatching } from '../hooks/useRideMatching'
-import { presenceService } from '../services'
+import { presenceService, dbService } from '../services'
+import type { Ride } from '../types/ride'
 import { GuestBooking } from './GuestBooking'
 import { GuestSearching } from './GuestSearching'
 import { GuestRideActive } from './GuestRideActive'
+import { GuestRideCompleted } from './GuestRideCompleted'
 import './GuestPanel.css'
 
 export function GuestPanel() {
   const { user } = useAuth()
-  const { requestRide, cancelRequest, confirmPickup, currentRide, status, isLoading, error } = useRideMatching(
+  const { requestRide, cancelRequest, confirmPickup, resetToIdle, currentRide, status, isLoading, error } = useRideMatching(
     user?.id ?? '',
     'guest'
   )
   const [onlineDrivers, setOnlineDrivers] = useState<number | null>(null)
+  const [urlCompletedRide, setUrlCompletedRide] = useState<Ride | null>(null)
   const [searchParams, setSearchParams] = useSearchParams()
   const paymentSuccess = searchParams.get('payment') === 'success'
+
+  // Restore completed ride from URL param on mount
+  useEffect(() => {
+    const completedId = searchParams.get('completed')
+    if (!completedId || !user?.id) return
+    dbService.getRideById(completedId).then(ride => {
+      if (ride?.status === 'completed') setUrlCompletedRide(ride)
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Write URL param when hook transitions to completed
+  useEffect(() => {
+    if (status === 'completed' && currentRide) {
+      setSearchParams({ completed: currentRide.id }, { replace: true })
+    }
+  }, [status, currentRide, setSearchParams])
 
   useEffect(() => {
     if (!paymentSuccess) return
@@ -29,6 +49,14 @@ export function GuestPanel() {
     return presenceService.subscribeOnlineCount('drivers-online', setOnlineDrivers)
   }, [status])
 
+  const handleNewRide = () => {
+    setUrlCompletedRide(null)
+    setSearchParams({}, { replace: true })
+    resetToIdle()
+  }
+
+  const completedRide = status === 'completed' ? currentRide : urlCompletedRide
+
   return (
     <>
       {paymentSuccess && (
@@ -37,8 +65,10 @@ export function GuestPanel() {
         </div>
       )}
 
-      {status === 'matched' && currentRide
-        ? <GuestRideActive ride={currentRide} userId={user?.id ?? ''} onConfirmPickup={confirmPickup} />
+      {completedRide
+        ? <GuestRideCompleted ride={completedRide} userId={user?.id ?? ''} onNewRide={handleNewRide} />
+        : status === 'matched' && currentRide
+        ? <GuestRideActive ride={currentRide} onConfirmPickup={confirmPickup} />
         : status === 'waiting'
         ? <GuestSearching onCancel={cancelRequest} />
         : <GuestBooking onlineDrivers={onlineDrivers} isLoading={isLoading} error={error} onRequest={requestRide} />

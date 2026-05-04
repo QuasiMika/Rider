@@ -15,18 +15,24 @@ import { supabaseFunctionsService } from './supabase/functions'
 import { supabaseRealtimeService } from './supabase/realtime'
 import { supabasePresenceService } from './supabase/presence'
 
-// Swap all five services here when VITE_USE_MOCK_BACKEND=true.
-// Add src/services/mock/{auth,db,functions,realtime,presence}.ts and replace the
-// supabase* imports above with mock* imports — no other file needs to change.
-if (import.meta.env.VITE_USE_MOCK_BACKEND === 'true') {
-  throw new Error(
-    '[services] VITE_USE_MOCK_BACKEND=true but no mock implementations exist yet. ' +
-    'Add src/services/mock/ and swap the imports in src/services/index.ts.',
-  )
-}
+import { restDbService } from './rest/db'
+import { restFunctionsService } from './rest/functions'
+import { setToken } from './rest/client'
+
+// When VITE_BACKEND=rest the app talks to the Express REST API instead of Supabase directly.
+// Auth, realtime, and presence still go through Supabase — only db and functions are swapped.
+// Set VITE_API_URL (default: http://localhost:3001) to point at the REST API server.
+const useRest = import.meta.env.VITE_BACKEND === 'rest'
 
 export const authService: AuthService = supabaseAuthService
-export const dbService: DbService = supabaseDbService
-export const functionsService: FunctionsService = supabaseFunctionsService
+export const dbService: DbService = useRest ? restDbService : supabaseDbService
+export const functionsService: FunctionsService = useRest ? restFunctionsService : supabaseFunctionsService
 export const realtimeService: RealtimeService = supabaseRealtimeService
 export const presenceService: PresenceService = supabasePresenceService
+
+// Keep the REST client's token in sync with the auth session when using the REST backend
+if (useRest) {
+  authService.onAuthStateChange(session => setToken(session?.access_token ?? null))
+}
+
+export { setToken as setRestToken }

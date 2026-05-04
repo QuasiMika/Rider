@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faLocationDot, faRoute } from '@fortawesome/free-solid-svg-icons'
 import { dbService } from '../services'
 import { useDriverLocation } from '../hooks/useDriverLocation'
 import { useResolvedNames } from '../hooks/useResolvedNames'
@@ -7,8 +9,10 @@ import type { Ride } from '../types/ride'
 
 type PartnerProfile = { first_name: string | null; family_name: string | null }
 
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+const mapsApp = isIOS ? 'Apple Maps' : 'Google Maps'
+
 function openMapsToLocation(location: string) {
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
   const encoded = encodeURIComponent(location.trim())
   const url = isIOS
     ? `maps://?daddr=${encoded}`
@@ -49,22 +53,9 @@ export function DriverRideActive({ ride }: Props) {
     ? `${guest.first_name?.[0] ?? ''}${guest.family_name?.[0] ?? ''}`.toUpperCase() || '?'
     : '?'
 
-  const statusLabel =
-    ride.status === 'pending'   ? 'Unterwegs zum Gast' :
-    ride.status === 'picked_up' ? 'Gast eingestiegen'  :
-    ride.status === 'active'    ? 'Fahrt läuft'        :
-    ride.status === 'completed' ? 'Fahrt beendet'      : ride.status
 
   return (
     <div className="rm-ride-active">
-      <div className="rm-ride-active__header">
-        <div className="rm-ride-active__icon">🚴</div>
-        <div>
-          <h1 className="rm-ride-active__title">Fahrt angenommen</h1>
-          <p className="rm-ride-active__status">{statusLabel}</p>
-        </div>
-      </div>
-
       <div className="rm-ride-active__body">
         <div className="rm-ride-active__info">
           <div className="rm-partner">
@@ -103,13 +94,15 @@ export function DriverRideActive({ ride }: Props) {
 
           {ride.status === 'pending' && ride.pickup_location && (
             <button className="rm-btn rm-btn--maps" onClick={() => openMapsToLocation(ride.pickup_location!)}>
-              📍 Navigation zum Abholort
+              <span className="rm-btn--maps__main"><FontAwesomeIcon icon={faLocationDot} /> Zum Abholort navigieren</span>
+              <span className="rm-btn--maps__sub">Öffnet {mapsApp}</span>
             </button>
           )}
 
           {ride.status === 'picked_up' && ride.destination && (
             <button className="rm-btn rm-btn--maps" onClick={() => openMapsToLocation(ride.destination!)}>
-              🗺️ Navigation zum Ziel
+              <span className="rm-btn--maps__main"><FontAwesomeIcon icon={faRoute} /> Zum Ziel navigieren</span>
+              <span className="rm-btn--maps__sub">Öffnet {mapsApp}</span>
             </button>
           )}
 
@@ -130,6 +123,7 @@ export function DriverRideActive({ ride }: Props) {
               />
             </div>
           )}
+
         </div>
 
         {(ride.pickup_location || ride.destination) && (

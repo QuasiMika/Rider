@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { calculatePriceEur } from '../_shared/pricing.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,16 +13,18 @@ function json(body: unknown, status = 200): Response {
   })
 }
 
-type RpcResult =
-  | { accepted: true; ride_id: string; price_eur: number | null }
-  | { accepted: false; reason: string }
-
 Deno.serve(async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
-    const { requestId } = (await req.json()) as { requestId: string }
-    if (!requestId) return json({ error: 'Missing requestId' }, 400)
+    const { pickupLocation, destination } = (await req.json()) as {
+      pickupLocation: string
+      destination: string
+    }
+
+    if (!pickupLocation || !destination) {
+      return json({ error: 'pickupLocation and destination required' }, 400)
+    }
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -34,23 +37,30 @@ Deno.serve(async (req: Request): Promise<Response> => {
     )
     if (authError || !user) return json({ error: 'Unauthorized' }, 401)
 
-    console.log(`[accept-ride] driver=${user.id}, request=${requestId}`)
+    // Price is calculated before insert so drivers immediately see it in the list.
+    const price_eur = await calculatePriceEur(pickupLocation, destination)
 
-    const { data, error } = await supabase.rpc('accept_ride', {
-      p_driver_id: user.id,
-      p_request_id: requestId,
-    })
+    const { data, error } = await supabase
+      .from('guest_requests')
+      .insert({
+        guest_id: user.id,
+        status: 'waiting',
+        pickup_location: pickupLocation,
+        destination,
+        price_eur,
+      })
+      .select('id')
+      .single()
 
     if (error) {
-      console.error('[accept-ride] RPC error:', error)
-      return json({ error: error.message }, 500)
+      console.error('[create-request] insert failed:', error)
+      return json({ error: error.message }, 400)
     }
 
-    const result = data as RpcResult
-    console.log('[accept-ride] result:', result)
-    return json(result)
+    console.log(`[create-request] guest=${user.id} id=${data.id} price_eur=${price_eur}`)
+    return json({ id: data.id, price_eur })
   } catch (err) {
-    console.error('[accept-ride] unexpected error:', err)
+    console.error('[create-request] unexpected error:', err)
     return json({ error: 'Internal server error' }, 500)
   }
 })

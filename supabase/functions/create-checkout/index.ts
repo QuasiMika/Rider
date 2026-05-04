@@ -1,41 +1,24 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import Stripe from 'npm:stripe@14'
+import { calculatePriceEur } from '../_shared/pricing.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6371
-  const toRad = (d: number) => (d * Math.PI) / 180
-  const dLat = toRad(lat2 - lat1)
-  const dLng = toRad(lng2 - lng1)
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2
-  return R * 2 * Math.asin(Math.sqrt(a))
-}
-
-function parseCoord(s: string): [number, number] | null {
-  const parts = s.split(',').map(Number)
-  return parts.length === 2 && parts.every(n => !isNaN(n))
-    ? [parts[0], parts[1]]
-    : null
+function json(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  })
 }
 
 Deno.serve(async (req: Request): Promise<Response> => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   const stripeKey = Deno.env.get('STRIPE_SECRET_KEY')
-  if (!stripeKey) {
-    return new Response(JSON.stringify({ error: 'Stripe not configured' }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 503,
-    })
-  }
+  if (!stripeKey) return json({ error: 'Stripe not configured' }, 503)
 
   try {
     const { ride_id } = (await req.json()) as { ride_id: string }
@@ -47,46 +30,26 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     const authHeader = req.headers.get('Authorization') ?? ''
     const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
+      authHeader.replace('Bearer ', ''),
     )
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 401,
-      })
-    }
+    if (authError || !user) return json({ error: 'Unauthorized' }, 401)
 
     const { data: ride, error: rideError } = await supabase
       .from('rides')
-      .select('id, guest_id, pickup_location, destination, status')
+      .select('id, guest_id, pickup_location, destination, status, price_eur')
       .eq('id', ride_id)
       .single()
 
-    if (rideError || !ride) {
-      return new Response(JSON.stringify({ error: 'Ride not found' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 404,
-      })
-    }
+    if (rideError || !ride) return json({ error: 'Ride not found' }, 404)
+    if (ride.guest_id !== user.id) return json({ error: 'Forbidden' }, 403)
 
-    if (ride.guest_id !== user.id) {
-      return new Response(JSON.stringify({ error: 'Forbidden' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 403,
-      })
-    }
+    // Use the server-calculated price; fall back to on-the-fly calculation for
+    // rides created before the price_eur column was added.
+    const amountEur: number =
+      ride.price_eur ??
+      calculatePriceEur(ride.pickup_location, ride.destination) ??
+      2
 
-    const pickup = parseCoord(ride.pickup_location ?? '')
-    const dest = parseCoord(ride.destination ?? '')
-    if (!pickup || !dest) {
-      return new Response(JSON.stringify({ error: 'Route coordinates missing' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 422,
-      })
-    }
-
-    const distanceKm = haversineKm(pickup[0], pickup[1], dest[0], dest[1])
-    const amountEur = Math.max(distanceKm * 2, 2)
     const amountCents = Math.round(amountEur * 100)
 
     const stripe = new Stripe(stripeKey)
@@ -99,7 +62,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           currency: 'eur',
           product_data: {
             name: 'Rider — Fahrt in Konstanz',
-            description: `${distanceKm.toFixed(1)} km · Fahrt-ID ${ride_id.slice(0, 8)}`,
+            description: `Fahrt-ID ${ride_id.slice(0, 8)}`,
           },
           unit_amount: amountCents,
         },
@@ -107,19 +70,13 @@ Deno.serve(async (req: Request): Promise<Response> => {
       }],
       mode: 'payment',
       success_url: `${origin}/#/ride?payment=success`,
-      cancel_url:  `${origin}/#/ride`,
+      cancel_url: `${origin}/#/ride`,
       metadata: { ride_id },
     })
 
-    return new Response(JSON.stringify({ url: session.url, amount_eur: amountEur }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200,
-    })
+    return json({ url: session.url, amount_eur: amountEur })
   } catch (err) {
     console.error('[create-checkout]', err)
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500,
-    })
+    return json({ error: 'Internal server error' }, 500)
   }
 })

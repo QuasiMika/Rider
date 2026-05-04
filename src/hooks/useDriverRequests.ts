@@ -9,6 +9,7 @@ export type RequestWithProfile = {
   created_at: string
   pickupLocation: string
   destination: string
+  price_eur: number | null
   guestName: string
   guestInitials: string
 }
@@ -22,6 +23,7 @@ type UseDriverRequestsResult = {
   isAccepting: boolean
   error: string | null
   acceptRequest: (requestId: string) => Promise<void>
+  resetToIdle: () => void
 }
 
 async function enrichRow(row: GuestRequestRow): Promise<RequestWithProfile> {
@@ -37,6 +39,7 @@ async function enrichRow(row: GuestRequestRow): Promise<RequestWithProfile> {
     created_at: row.created_at,
     pickupLocation: row.pickup_location ?? '',
     destination: row.destination ?? '',
+    price_eur: row.price_eur,
     guestName: fullName || 'Gast',
     guestInitials: initials,
   }
@@ -80,6 +83,7 @@ export function useDriverRequests(driverId: string): UseDriverRequestsResult {
           created_at: r.created_at,
           pickupLocation: r.pickup_location ?? '',
           destination: r.destination ?? '',
+          price_eur: r.price_eur,
           guestName: fullName || 'Gast',
           guestInitials: initials,
         }
@@ -134,5 +138,11 @@ export function useDriverRequests(driverId: string): UseDriverRequestsResult {
     }
   }, [driverId])
 
-  return { requests, currentRide, status, isAccepting, error, acceptRequest }
+  const resetToIdle = useCallback(() => {
+    setStatus('browsing')
+    setCurrentRide(null)
+    setError(null)
+  }, [])
+
+  return { requests, currentRide, status, isAccepting, error, acceptRequest, resetToIdle }
 }

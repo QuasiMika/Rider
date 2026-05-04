@@ -13,6 +13,7 @@ export type GuestRequest = {
   status: 'waiting' | 'matched'
   pickup_location?: string
   destination?: string
+  price_eur?: number | null
   ride_id?: string
   created_at: string
 }
@@ -25,6 +26,7 @@ export type Ride = {
   pickup_location?: string
   destination?: string
   actual_end_location?: string
+  price_eur?: number | null
   created_at: string
 }
 
@@ -41,5 +43,5 @@ export type MatchResult =
   | { matched: false }
 
 export type AcceptResult =
-  | { accepted: true; ride_id: string }
+  | { accepted: true; ride_id: string; price_eur?: number | null }
   | { accepted: false; reason: string }

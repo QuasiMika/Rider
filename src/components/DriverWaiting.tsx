@@ -32,6 +32,11 @@ function RequestItem({ req, isAccepting, onAccept }: RequestItemProps) {
             )}
           </div>
         )}
+        {req.price_eur != null && (
+          <div className="rm-request-item__price">
+            {req.price_eur.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
+          </div>
+        )}
       </div>
       <button
         className="rm-btn rm-btn--accept"

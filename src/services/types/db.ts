@@ -23,6 +23,7 @@ export type GuestRequestRow = {
   created_at: string
   pickup_location: string | null
   destination: string | null
+  price_eur: number | null
 }
 
 export type ReportRow = {

@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react'
 import { dbService, realtimeService, functionsService } from '../services'
 import type { Ride } from '../types/ride'
 
-type Status = 'idle' | 'waiting' | 'matched' | 'error'
+type Status = 'idle' | 'waiting' | 'matched' | 'completed' | 'error'
 
 type UseRideMatchingResult = {
   submitAvailability: () => Promise<void>
   requestRide: (pickupLocation: string, destination: string) => Promise<void>
   cancelRequest: () => Promise<void>
   confirmPickup: () => Promise<void>
+  resetToIdle: () => void
   currentRide: Ride | null
   status: Status
   isLoading: boolean
@@ -42,6 +43,16 @@ export function useRideMatching(userId: string, role: 'driver' | 'guest'): UseRi
     checkExistingState()
   }, [userId, role])
 
+  // Polling fallback while waiting — catches missed realtime INSERT events
+  useEffect(() => {
+    if (status !== 'waiting' || !userId) return
+    const interval = setInterval(async () => {
+      const ride = await dbService.getActiveRide(userId, 'guest_id')
+      if (ride) { setCurrentRide(ride); setStatus('matched'); setIsLoading(false) }
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [status, userId])
+
   // Realtime: rides for this user (both driver and guest channels)
   useEffect(() => {
     if (!userId) return
@@ -57,7 +68,10 @@ export function useRideMatching(userId: string, role: 'driver' | 'guest'): UseRi
       `rides-guest-${userId}`,
       userId,
       (ride) => { setCurrentRide(ride); setStatus('matched'); setIsLoading(false) },
-      (ride) => setCurrentRide(ride),
+      (ride) => {
+        setCurrentRide(ride)
+        if (ride.status === 'completed') setStatus('completed')
+      },
     )
 
     return () => { unsubDriver(); unsubGuest() }
@@ -102,8 +116,7 @@ export function useRideMatching(userId: string, role: 'driver' | 'guest'): UseRi
     try {
       const existing = await dbService.getWaitingGuestRequest(userId)
       if (!existing) {
-        const { error: insertError } = await dbService.insertGuestRequest(userId, pickupLocation, destination)
-        if (insertError) throw new Error(insertError.message)
+        await functionsService.invokeCreateRequest(pickupLocation, destination)
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unbekannter Fehler')
@@ -123,5 +136,12 @@ export function useRideMatching(userId: string, role: 'driver' | 'guest'): UseRi
     setCurrentRide(prev => prev ? { ...prev, status: 'picked_up' } : null)
   }
 
-  return { submitAvailability, requestRide, cancelRequest, confirmPickup, currentRide, status, isLoading, error }
+  const resetToIdle = () => {
+    setStatus('idle')
+    setCurrentRide(null)
+    setIsLoading(false)
+    setError(null)
+  }
+
+  return { submitAvailability, requestRide, cancelRequest, confirmPickup, resetToIdle, currentRide, status, isLoading, error }
 }
