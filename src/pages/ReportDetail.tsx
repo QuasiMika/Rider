@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faArrowLeft } from '@fortawesome/free-solid-svg-icons'
+import { useParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthUser'
 import { useResolvedNames } from '../hooks/useResolvedNames'
 import { dbService } from '../services'
@@ -12,7 +10,6 @@ import './ReportDetail.css'
 export default function ReportDetail() {
   const { rideId } = useParams<{ rideId: string }>()
   const { user } = useAuth()
-  const navigate = useNavigate()
 
   const [report, setReport] = useState<ReportRow | null>(null)
   const [ride, setRide] = useState<Ride | null>(null)
@@ -50,9 +47,6 @@ export default function ReportDetail() {
   if (notFound) {
     return (
       <div className="report-detail">
-        <button className="report-detail__back" onClick={() => navigate(-1)}>
-          <FontAwesomeIcon icon={faArrowLeft} /> Zurück
-        </button>
         <p className="report-detail__not-found">Keine Meldung gefunden.</p>
       </div>
     )
@@ -60,10 +54,6 @@ export default function ReportDetail() {
 
   return (
     <div className="report-detail">
-      <button className="report-detail__back" onClick={() => navigate(-1)}>
-        <FontAwesomeIcon icon={faArrowLeft} /> Zurück
-      </button>
-
       <div className="report-detail__inner">
         <div className="report-detail__banner">
           <span className="report-detail__banner-icon">🔍</span>

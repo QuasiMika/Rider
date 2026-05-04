@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Outlet, Link, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthUser'
 import { useTheme } from '../hooks/useTheme'
+import { dbService } from '../services'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faHouse,
@@ -11,6 +12,7 @@ import {
   faMoon,
   faRightFromBracket,
   faCar,
+  faChartBar,
 } from '@fortawesome/free-solid-svg-icons'
 import '../pages/LandingPage.css'
 
@@ -19,6 +21,12 @@ export function AppLayout() {
   const { theme, toggle } = useTheme()
   const navigate = useNavigate()
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [isDriver, setIsDriver] = useState(false)
+
+  useEffect(() => {
+    if (!user) { setIsDriver(false); return }
+    dbService.getUserProfile(user.id).then(({ data }) => setIsDriver(data?.role === 'driver'))
+  }, [user])
 
   useEffect(() => {
     document.documentElement.classList.add('is-landing')
@@ -41,6 +49,11 @@ export function AppLayout() {
           </button>
           {user ? (
             <>
+              {isDriver && (
+                <Link to="/einnahmen">
+                  <button className="lp-btn lp-btn--ghost">Einnahmen</button>
+                </Link>
+              )}
               <Link to="/profil">
                 <button className="lp-btn lp-btn--ghost">Profil</button>
               </Link>
@@ -82,6 +95,15 @@ export function AppLayout() {
               <span className="bottom-nav__icon"><FontAwesomeIcon icon={faCar} /></span>
               <span className="bottom-nav__label">Fahrt</span>
             </NavLink>
+            {isDriver && (
+              <NavLink
+                to="/einnahmen"
+                className={({ isActive }) => `bottom-nav__item${isActive ? ' bottom-nav__item--active' : ''}`}
+              >
+                <span className="bottom-nav__icon"><FontAwesomeIcon icon={faChartBar} /></span>
+                <span className="bottom-nav__label">Einnahmen</span>
+              </NavLink>
+            )}
             <NavLink
               to="/profil"
               className={({ isActive }) => `bottom-nav__item${isActive ? ' bottom-nav__item--active' : ''}`}

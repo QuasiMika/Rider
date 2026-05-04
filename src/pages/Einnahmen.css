@@ -1,0 +1,276 @@
+/* ─── Hero ───────────────────────────────────────────────── */
+
+.ein-hero .profil-hero__inner {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+@media (max-width: 900px) {
+  .ein-hero .profil-hero__inner {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+.ein-hero__icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: var(--accent-bg);
+  border: 1.5px solid var(--accent-border);
+  color: var(--accent);
+  font-size: 26px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ein-hero__sub {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--text);
+  opacity: 0.7;
+}
+
+/* ─── Accent value ───────────────────────────────────────── */
+
+.ein-accent {
+  color: #16a34a;
+}
+[data-theme='dark'] .ein-accent {
+  color: #4ade80;
+}
+
+/* ─── Section titles ─────────────────────────────────────── */
+
+.ein-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-h);
+  margin: 0 0 1rem;
+}
+
+/* ─── Chart section ──────────────────────────────────────── */
+
+.ein-chart-section {
+  box-sizing: border-box;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.25rem 1.5rem 1rem;
+  margin-top: 1.5rem;
+  max-width: 960px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.ein-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  height: 180px;
+  padding-bottom: 24px;
+  position: relative;
+}
+
+.ein-chart__col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  height: 100%;
+  min-width: 0;
+}
+
+.ein-chart__bar-area {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  overflow: visible;
+}
+
+.ein-chart__bar {
+  width: 100%;
+  height: var(--h, 0%);
+  background: var(--accent);
+  border-radius: 4px 4px 0 0;
+  opacity: 0.75;
+  position: relative;
+  cursor: default;
+  transition: opacity 0.15s;
+  animation: ein-bar-grow 0.5s cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation-delay: calc(var(--i, 0) * 25ms);
+}
+
+.ein-chart__bar:hover {
+  opacity: 1;
+}
+
+.ein-chart__bar--empty {
+  opacity: 0.2;
+  background: var(--border);
+}
+
+.ein-chart__bar--current {
+  opacity: 1;
+}
+
+@keyframes ein-bar-grow {
+  from { height: 0; opacity: 0; }
+  to   { height: var(--h, 0%); opacity: 0.75; }
+}
+
+.ein-chart__bar--current {
+  animation-name: ein-bar-grow-current;
+}
+
+@keyframes ein-bar-grow-current {
+  from { height: 0; opacity: 0; }
+  to   { height: var(--h, 0%); opacity: 1; }
+}
+
+/* ─── Tooltip ────────────────────────────────────────────── */
+
+.ein-chart__tooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--text-h);
+  color: var(--bg);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--sans);
+  line-height: 1.4;
+  padding: 5px 9px;
+  border-radius: 8px;
+  white-space: nowrap;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s;
+  z-index: 10;
+}
+
+.ein-chart__bar:hover .ein-chart__tooltip {
+  opacity: 1;
+}
+
+/* ─── X-axis labels ──────────────────────────────────────── */
+
+.ein-chart__label {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--text);
+  opacity: 0.6;
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.ein-chart__label--current {
+  opacity: 1;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* ─── Monthly list ───────────────────────────────────────── */
+
+.ein-list-section {
+  margin-top: 1.5rem;
+  max-width: 960px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.ein-list {
+  box-sizing: border-box;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.ein-list-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.12s;
+}
+
+.ein-list-row:last-child {
+  border-bottom: none;
+}
+
+.ein-list-row:hover {
+  background: var(--accent-bg);
+}
+
+.ein-list-row--current {
+  background: var(--accent-bg);
+}
+
+.ein-list-row__month {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-h);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ein-list-row__badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: var(--accent-bg);
+  color: var(--accent);
+  border: 1px solid var(--accent-border);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ein-list-row__rides {
+  font-size: 12px;
+  color: var(--text);
+  opacity: 0.6;
+  min-width: 70px;
+  text-align: right;
+}
+
+.ein-list-row__amount {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-h);
+  min-width: 70px;
+  text-align: right;
+}
+
+/* ─── Responsive ─────────────────────────────────────────── */
+
+@media (max-width: 480px) {
+  .ein-chart__label {
+    font-size: 8px;
+  }
+
+  .ein-list-row {
+    padding: 0.65rem 1rem;
+  }
+
+  .ein-list-row__rides {
+    display: none;
+  }
+}

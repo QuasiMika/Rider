@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faArrowLeft } from '@fortawesome/free-solid-svg-icons'
 import { useAuth } from '../auth/AuthUser'
 import { useRideMatching } from '../hooks/useRideMatching'
 import { dbService } from '../services'
@@ -115,10 +113,6 @@ export default function Profil() {
 
   return (
     <div className="profil">
-      <button className="profil-back" onClick={() => navigate(-1)}>
-        <FontAwesomeIcon icon={faArrowLeft} /> Zurück
-      </button>
-
       <section className="profil-hero">
         <div className="profil-hero__inner">
           <div className="profil-avatar">{loading ? '…' : initials}</div>

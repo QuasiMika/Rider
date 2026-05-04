@@ -45,7 +45,7 @@ export const supabaseDbService: DbService = {
   async getCompletedRides(userId, field) {
     const { data } = await supabase
       .from('rides')
-      .select('id, driver_id, guest_id, status, pickup_location, destination, actual_end_location, created_at')
+      .select('id, driver_id, guest_id, status, pickup_location, destination, actual_end_location, price_eur, created_at')
       .eq(field, userId)
       .eq('status', 'completed')
       .order('created_at', { ascending: false })

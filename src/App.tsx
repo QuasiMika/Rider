@@ -10,6 +10,7 @@ import LandingPage from './pages/LandingPage'
 import { RideMatchingApp } from './components/RideMatchingApp'
 import Impressum from './pages/Impressum'
 import ReportDetail from './pages/ReportDetail'
+import Einnahmen from './pages/Einnahmen'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -34,6 +35,7 @@ export default function App() {
             <Route path="/profile/:id" element={<ProtectedRoute><PublicProfile /></ProtectedRoute>} />
             <Route path="/report/:rideId" element={<ProtectedRoute><ReportDetail /></ProtectedRoute>} />
             <Route path="/ride" element={<ProtectedRoute><RideMatchingApp /></ProtectedRoute>} />
+            <Route path="/einnahmen" element={<ProtectedRoute><Einnahmen /></ProtectedRoute>} />
             <Route path="/driver" element={<Navigate to="/ride" replace />} />
             <Route path="/guest" element={<Navigate to="/ride" replace />} />
           </Route>

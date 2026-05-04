@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { dbService } from '../services'
 import './PublicProfile.css'
 
@@ -19,8 +19,6 @@ function StarDisplay({ value, count }: { value: number; count: number }) {
 
 export default function PublicProfile() {
   const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
-
   const [profile, setProfile] = useState<{ first_name: string | null; family_name: string | null; role: 'customer' | 'driver'; created_at: string } | null>(null)
   const [reviewStats, setReviewStats] = useState<ReviewStats | null>(null)
   const [loading, setLoading] = useState(true)
@@ -60,7 +58,6 @@ export default function PublicProfile() {
   if (loading) {
     return (
       <div className="pub-profil">
-        <button className="pub-back" onClick={() => navigate(-1)}>← Zurück</button>
         <p className="pub-muted" style={{ padding: '4rem 3rem' }}>Wird geladen...</p>
       </div>
     )
@@ -69,7 +66,6 @@ export default function PublicProfile() {
   if (notFound) {
     return (
       <div className="pub-profil">
-        <button className="pub-back" onClick={() => navigate(-1)}>← Zurück</button>
         <p className="pub-muted" style={{ padding: '4rem 3rem' }}>Profil nicht gefunden.</p>
       </div>
     )
@@ -77,8 +73,6 @@ export default function PublicProfile() {
 
   return (
     <div className="pub-profil">
-      <button className="pub-back" onClick={() => navigate(-1)}>← Zurück</button>
-
       <section className="pub-hero">
         <div className="pub-hero__inner">
           <div className="pub-avatar">{initials}</div>

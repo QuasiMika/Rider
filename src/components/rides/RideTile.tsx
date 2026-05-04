@@ -94,17 +94,23 @@ export function RideTile({ ride, userId, userRole, onClick }: Props) {
           <span className="ride-tile__partner-label">{partnerLabel}</span>
           <span className="ride-tile__partner-name">{partnerName ?? '…'}</span>
         </div>
-        <div className="ride-tile__rating">
-          {stars === 'loading' ? null : stars !== null ? (
-            <div className="ride-tile__stars">
-              {[1, 2, 3, 4, 5].map(n => (
-                <span key={n} className={`ride-tile__star ${n <= stars ? 'ride-tile__star--on' : ''}`}>★</span>
-              ))}
-            </div>
-          ) : (
-            <span className="ride-tile__unrated">Nicht bewertet</span>
-          )}
-        </div>
+        {ride.price_eur != null && (
+          <div className="ride-tile__price">
+            <span className="ride-tile__price-label">
+              {userRole === 'driver' ? 'Einnahme' : 'Bezahlt'}
+            </span>
+            <span className={`ride-tile__price-amount ${userRole === 'driver' ? 'ride-tile__price-amount--income' : ''}`}>
+              {ride.price_eur.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
+            </span>
+          </div>
+        )}
+        {stars !== 'loading' && stars !== null && (
+          <div className="ride-tile__stars">
+            {[1, 2, 3, 4, 5].map(n => (
+              <span key={n} className={`ride-tile__star ${n <= stars ? 'ride-tile__star--on' : ''}`}>★</span>
+            ))}
+          </div>
+        )}
       </div>
     </button>
   )
