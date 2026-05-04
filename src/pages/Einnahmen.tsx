@@ -121,7 +121,7 @@ export default function Einnahmen() {
       <section className="profil-hero ein-hero">
         <div className="profil-hero__inner">
           <div className="ein-hero__icon">€</div>
-          <div>
+          <div className="profil-hero__info">
             <h1 className="profil-hero__name">Einnahmen</h1>
             <p className="ein-hero__sub">Deine monatlichen Einnahmen als Fahrer</p>
           </div>
