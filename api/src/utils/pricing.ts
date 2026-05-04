@@ -13,9 +13,10 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
 
 function parseCoord(s: string): [number, number] | null {
   const parts = s.split(',').map(Number)
-  return parts.length === 2 && parts.every((n) => !isNaN(n))
-    ? [parts[0], parts[1]]
-    : null
+  if (parts.length !== 2 || parts.some(isNaN)) return null
+  const [lat, lng] = parts
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null
+  return [lat, lng]
 }
 
 async function osrmDistanceKm(

@@ -65,7 +65,7 @@ export const supabaseDbService: DbService = {
   async getWaitingGuestRequests() {
     const { data } = await supabase
       .from('guest_requests')
-      .select('id, guest_id, created_at, pickup_location, destination')
+      .select('id, guest_id, created_at, pickup_location, destination, price_eur')
       .eq('status', 'waiting')
       .order('created_at', { ascending: true })
     return (data ?? []) as GuestRequestRow[]

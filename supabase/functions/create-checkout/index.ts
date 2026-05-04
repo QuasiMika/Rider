@@ -1,6 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import Stripe from 'npm:stripe@14'
-import { calculatePriceEur } from '../_shared/pricing.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -42,15 +41,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     if (rideError || !ride) return json({ error: 'Ride not found' }, 404)
     if (ride.guest_id !== user.id) return json({ error: 'Forbidden' }, 403)
+    if (!ride.price_eur) return json({ error: 'Preis nicht verfügbar' }, 422)
 
-    // Use the server-calculated price; fall back to on-the-fly calculation for
-    // rides created before the price_eur column was added.
-    const amountEur: number =
-      ride.price_eur ??
-      calculatePriceEur(ride.pickup_location, ride.destination) ??
-      2
-
-    const amountCents = Math.round(amountEur * 100)
+    const amountCents = Math.round(ride.price_eur * 100)
 
     const stripe = new Stripe(stripeKey)
     const origin = req.headers.get('origin') ?? 'https://yourapp.com'
@@ -74,7 +67,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       metadata: { ride_id },
     })
 
-    return json({ url: session.url, amount_eur: amountEur })
+    return json({ url: session.url, amount_eur: ride.price_eur })
   } catch (err) {
     console.error('[create-checkout]', err)
     return json({ error: 'Internal server error' }, 500)

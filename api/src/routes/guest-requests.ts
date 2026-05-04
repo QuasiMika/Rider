@@ -39,6 +39,9 @@ router.post('/', requireAuth, async (req, res: Response) => {
   if (!pickupLocation || !destination) {
     return res.status(400).json({ message: 'pickupLocation and destination required' })
   }
+  if (pickupLocation.length > 255 || destination.length > 255) {
+    return res.status(400).json({ message: 'Location strings too long' })
+  }
   try {
     const price_eur = await calculatePriceEur(pickupLocation, destination)
 

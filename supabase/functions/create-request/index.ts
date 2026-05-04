@@ -25,6 +25,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
     if (!pickupLocation || !destination) {
       return json({ error: 'pickupLocation and destination required' }, 400)
     }
+    if (pickupLocation.length > 255 || destination.length > 255) {
+      return json({ error: 'Location strings too long' }, 400)
+    }
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',

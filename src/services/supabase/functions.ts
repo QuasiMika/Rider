@@ -39,8 +39,10 @@ export const supabaseFunctionsService: FunctionsService = {
   },
 
   async invokeCreateCheckout(rideId) {
+    const token = await getAccessToken()
     const { data, error } = await supabase.functions.invoke<{ url: string }>('create-checkout', {
       body: { ride_id: rideId },
+      headers: { Authorization: `Bearer ${token}` },
     })
     if (error || !data?.url) return null
     return data

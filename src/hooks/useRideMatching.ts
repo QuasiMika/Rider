@@ -127,7 +127,8 @@ export function useRideMatching(userId: string, role: 'driver' | 'guest'): UseRi
   const cancelRequest = async () => {
     if (!userId) return
     const { error: deleteError } = await dbService.deleteWaitingGuestRequest(userId)
-    if (!deleteError) { setStatus('idle'); setIsLoading(false); setError(null) }
+    if (deleteError) { setError(deleteError.message); return }
+    setStatus('idle'); setIsLoading(false); setError(null)
   }
 
   const confirmPickup = async () => {
