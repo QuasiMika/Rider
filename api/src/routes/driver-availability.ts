@@ -7,7 +7,7 @@ const router = Router()
 // GET /driver-availability/:driverId
 router.get('/:driverId', requireAuth, async (req, res: Response) => {
   const { rows } = await pool.query(
-    'SELECT id FROM driver_availability WHERE driver_id = $1 LIMIT 1',
+    `SELECT id FROM driver_availability WHERE driver_id = $1 AND status = 'available' LIMIT 1`,
     [req.params.driverId],
   )
   res.json(rows[0] ?? null)

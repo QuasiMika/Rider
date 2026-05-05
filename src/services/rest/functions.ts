@@ -30,8 +30,14 @@ export const restFunctionsService: FunctionsService = {
     }
   },
 
-  // Not implemented in the REST API
-  async invokeCreateCheckout(_rideId) {
-    return null
+  async invokeCreateCheckout(rideId) {
+    try {
+      return await apiFetch<{ url: string }>('/checkout', {
+        method: 'POST',
+        body: JSON.stringify({ ride_id: rideId }),
+      })
+    } catch {
+      return null
+    }
   },
 }

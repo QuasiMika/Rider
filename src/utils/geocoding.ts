@@ -10,7 +10,7 @@ export function enqueue<T>(fn: () => Promise<T>): Promise<T> {
     v => (queue = Promise.resolve(), v),
     e => { queue = Promise.resolve(); throw e },
   )
-  queue = next.then(() => new Promise(r => setTimeout(r, 1100))).catch(() => {})
+  queue = next.then(() => new Promise<void>(r => setTimeout(r, 1100))).catch(() => {})
   return next
 }
 
