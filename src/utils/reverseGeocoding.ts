@@ -1,5 +1,9 @@
 import { enqueue } from './geocoding'
 
+const NOMINATIM = import.meta.env.DEV
+  ? '/nominatim'
+  : 'https://nominatim.openstreetmap.org'
+
 // ── Provider interface ────────────────────────────────────────────────────────
 // Swap the active export below to replace the reverse-geocoding backend.
 export interface ReverseGeocodingProvider {
@@ -16,7 +20,7 @@ class NominatimReverseProvider implements ReverseGeocodingProvider {
 
     return enqueue(async () => {
       if (signal?.aborted) return null
-      const url = `/nominatim/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=de`
+      const url = `${NOMINATIM}/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=de`
       try {
         const res = await fetch(url, signal ? { signal } : undefined)
         if (!res.ok) { memCache.set(key, null); return null }
