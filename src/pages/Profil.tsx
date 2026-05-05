@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthUser'
 import { useRideMatching } from '../hooks/useRideMatching'
-import { supabase } from '../utils/supabase'
+import { dbService } from '../services'
+import type { UserProfile } from '../services'
+import type { Ride } from '../types/ride'
+import { RideTile } from '../components/rides/RideTile'
+import { RideDetailDialog, StarDisplay } from '../components/rides/RideDetailDialog'
 import './Profil.css'
 
 function RideCta({ userId, role }: { userId: string; role: 'driver' | 'guest' }) {
@@ -54,34 +58,48 @@ function RideCta({ userId, role }: { userId: string; role: 'driver' | 'guest' })
   )
 }
 
-type UserProfile = {
-  first_name: string | null
-  family_name: string | null
-  role: 'customer' | 'driver'
-  currently_working: boolean
-  created_at: string
-}
-
 export default function Profil() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [completedRides, setCompletedRides] = useState<Ride[]>([])
+  const [reviewStats, setReviewStats] = useState<{ avg: number; count: number } | null>(null)
+
+  const selectedRideId = searchParams.get('ride')
+  const selectedRide = completedRides.find(r => r.id === selectedRideId) ?? null
+  const [showAllRides, setShowAllRides] = useState(false)
+
+  const RIDES_INITIAL = 4
 
   useEffect(() => {
     if (!user) return
-    supabase
-      .from('user_profile')
-      .select('first_name, family_name, role, currently_working, created_at')
-      .eq('user_id', user.id)
-      .single()
-      .then(({ data, error }) => {
-        if (error) setError(error.message)
-        else setProfile(data)
-        setLoading(false)
-      })
+    dbService.getUserProfile(user.id).then(({ data, error: err }) => {
+      if (err) setError(err.message)
+      else setProfile(data)
+      setLoading(false)
+    })
   }, [user])
+
+  useEffect(() => {
+    if (!user) return
+    dbService.getReviews(user.id).then(data => {
+      if (data.length > 0) {
+        const avg = data.reduce((s, r) => s + r.stars, 0) / data.length
+        setReviewStats({ avg, count: data.length })
+      } else {
+        setReviewStats({ avg: 0, count: 0 })
+      }
+    })
+  }, [user])
+
+  useEffect(() => {
+    if (!user || !profile) return
+    const col = profile.role === 'driver' ? 'driver_id' : 'guest_id'
+    dbService.getCompletedRides(user.id, col).then(data => setCompletedRides(data))
+  }, [user, profile])
 
   const initials = profile
     ? `${profile.first_name?.[0] ?? ''}${profile.family_name?.[0] ?? ''}`.toUpperCase()
@@ -91,10 +109,10 @@ export default function Profil() {
     ? `${profile.first_name ?? ''} ${profile.family_name ?? ''}`.trim()
     : '–'
 
+  const userRole = profile?.role === 'driver' ? 'driver' : 'guest'
+
   return (
     <div className="profil">
-      <button className="profil-back" onClick={() => navigate(-1)}>← Zurück</button>
-
       <section className="profil-hero">
         <div className="profil-hero__inner">
           <div className="profil-avatar">{loading ? '…' : initials}</div>
@@ -148,12 +166,59 @@ export default function Profil() {
               </div>
             </div>
 
-            <RideCta
-              userId={user?.id ?? ''}
-              role={profile.role === 'driver' ? 'driver' : 'guest'}
-            />
+            <div className="profil-card">
+              <div className="profil-card__label">Meine Bewertung</div>
+              <div className="profil-card__value">
+                {reviewStats === null ? (
+                  <span className="profil-muted">…</span>
+                ) : reviewStats.count > 0 ? (
+                  <StarDisplay value={reviewStats.avg} count={reviewStats.count} />
+                ) : (
+                  <span className="profil-muted">Noch keine Bewertungen</span>
+                )}
+              </div>
+            </div>
+
+            <RideCta userId={user?.id ?? ''} role={userRole} />
+          </div>
+
+          <div className="profil-rides">
+            <h2 className="profil-rides__title">Abgeschlossene Fahrten</h2>
+            {completedRides.length === 0 ? (
+              <p className="profil-muted">Keine abgeschlossenen Fahrten.</p>
+            ) : (
+              <>
+                <div className="profil-rides__grid">
+                  {(showAllRides ? completedRides : completedRides.slice(0, RIDES_INITIAL)).map(ride => (
+                    <RideTile
+                      key={ride.id}
+                      ride={ride}
+                      userId={user!.id}
+                      userRole={userRole}
+                      onClick={() => setSearchParams({ ride: ride.id })}
+                    />
+                  ))}
+                </div>
+                {completedRides.length > RIDES_INITIAL && (
+                  <button className="profil-rides__toggle" onClick={() => setShowAllRides(v => !v)}>
+                    {showAllRides
+                      ? 'Weniger anzeigen'
+                      : `Alle ${completedRides.length} Fahrten anzeigen`}
+                  </button>
+                )}
+              </>
+            )}
           </div>
         </section>
+      )}
+
+      {selectedRide && user && profile && (
+        <RideDetailDialog
+          ride={selectedRide}
+          userId={user.id}
+          userRole={userRole}
+          onClose={() => navigate(-1)}
+        />
       )}
     </div>
   )

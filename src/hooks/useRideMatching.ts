@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../utils/supabase'
-import type { Ride, MatchResult } from '../types/ride'
+import { dbService, realtimeService, functionsService } from '../services'
+import type { Ride } from '../types/ride'
 
-type Status = 'idle' | 'waiting' | 'matched' | 'error'
+type Status = 'idle' | 'waiting' | 'matched' | 'completed' | 'error'
 
 type UseRideMatchingResult = {
   submitAvailability: () => Promise<void>
-  requestRide: () => Promise<void>
+  requestRide: (pickupLocation: string, destination: string) => Promise<void>
+  cancelRequest: () => Promise<void>
+  confirmPickup: () => Promise<void>
+  resetToIdle: () => void
   currentRide: Ride | null
   status: Status
   isLoading: boolean
@@ -19,202 +22,127 @@ export function useRideMatching(userId: string, role: 'driver' | 'guest'): UseRi
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // On mount: restore state if user already has a pending request or an active ride
+  // Restore state on mount
   useEffect(() => {
     if (!userId) return
 
     const checkExistingState = async () => {
-      // Check for an active ride first
       const rideField = role === 'driver' ? 'driver_id' : 'guest_id'
-      const { data: ride } = await supabase
-        .from('rides')
-        .select('*')
-        .eq(rideField, userId)
-        .in('status', ['pending', 'active'])
-        .maybeSingle()
+      const ride = await dbService.getActiveRide(userId, rideField)
+      if (ride) { setCurrentRide(ride); setStatus('matched'); return }
 
-      if (ride) {
-        setCurrentRide(ride as Ride)
-        setStatus('matched')
-        return
-      }
-
-      // Check for a waiting availability / request
       const table = role === 'driver' ? 'driver_availability' : 'guest_requests'
-      const userField = role === 'driver' ? 'driver_id' : 'guest_id'
-      const waitingStatus = role === 'driver' ? 'available' : 'waiting'
+      const existing =
+        table === 'driver_availability'
+          ? await dbService.getDriverAvailability(userId)
+          : await dbService.getWaitingGuestRequest(userId)
 
-      const { data: existing } = await supabase
-        .from(table)
-        .select('id')
-        .eq(userField, userId)
-        .eq('status', waitingStatus)
-        .maybeSingle()
-
-      if (existing) {
-        setStatus('waiting')
-        setIsLoading(true)
-      }
+      if (existing) { setStatus('waiting'); setIsLoading(true) }
     }
 
     checkExistingState()
   }, [userId, role])
 
-  // Realtime subscription: listen for a new ride being created for this user
+  // Polling fallback while waiting — catches missed realtime INSERT events
+  useEffect(() => {
+    if (status !== 'waiting' || !userId) return
+    const interval = setInterval(async () => {
+      const ride = await dbService.getActiveRide(userId, 'guest_id')
+      if (ride) { setCurrentRide(ride); setStatus('matched'); setIsLoading(false) }
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [status, userId])
+
+  // Realtime: rides for this user (both driver and guest channels)
   useEffect(() => {
     if (!userId) return
 
-    // Two channels because Supabase Realtime doesn't support OR filters
-    const driverChannel = supabase
-      .channel(`rides-driver-${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'rides',
-          filter: `driver_id=eq.${userId}`,
-        },
-        (payload) => {
-          setCurrentRide(payload.new as Ride)
-          setStatus('matched')
-          setIsLoading(false)
-        }
-      )
-      .subscribe()
+    const unsubDriver = realtimeService.subscribeRideByDriverId(
+      `rides-driver-${userId}`,
+      userId,
+      (ride) => { setCurrentRide(ride); setStatus('matched'); setIsLoading(false) },
+      () => {},
+    )
 
-    const guestChannel = supabase
-      .channel(`rides-guest-${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'rides',
-          filter: `guest_id=eq.${userId}`,
-        },
-        (payload) => {
-          setCurrentRide(payload.new as Ride)
-          setStatus('matched')
-          setIsLoading(false)
-        }
-      )
-      .subscribe()
+    const unsubGuest = realtimeService.subscribeRideByGuestId(
+      `rides-guest-${userId}`,
+      userId,
+      (ride) => { setCurrentRide(ride); setStatus('matched'); setIsLoading(false) },
+      (ride) => {
+        setCurrentRide(ride)
+        if (ride.status === 'completed') setStatus('completed')
+      },
+    )
 
-    return () => {
-      supabase.removeChannel(driverChannel)
-      supabase.removeChannel(guestChannel)
-    }
+    return () => { unsubDriver(); unsubGuest() }
   }, [userId])
 
   const callMatchFunction = async (recordId: string) => {
-    const { data: { session } } = await supabase.auth.getSession()
-
-    const { data, error: fnError } = await supabase.functions.invoke<MatchResult>('match-ride', {
-      body: { role, recordId },
-      headers: {
-        Authorization: `Bearer ${session?.access_token}`,
-      },
-    })
-
-    if (fnError) {
-      console.error('[useRideMatching] Edge function error:', fnError)
-      throw new Error(fnError.message)
-    }
-
-    if (data?.matched && data.ride_id) {
-      console.log('[useRideMatching] Match found immediately, ride_id:', data.ride_id)
-      // Realtime subscription will set currentRide; fetch as fallback
-      const { data: ride } = await supabase
-        .from('rides')
-        .select('*')
-        .eq('id', data.ride_id)
-        .single()
-      if (ride) {
-        setCurrentRide(ride as Ride)
-        setStatus('matched')
-        setIsLoading(false)
-      }
+    const result = await functionsService.invokeMatchRide(role, recordId)
+    if (result.matched && result.ride_id) {
+      console.log('[useRideMatching] Match found immediately, ride_id:', result.ride_id)
+      const ride = await dbService.getRideById(result.ride_id)
+      if (ride) { setCurrentRide(ride); setStatus('matched'); setIsLoading(false) }
     }
   }
 
   const submitAvailability = async () => {
     if (!userId) return
-    setIsLoading(true)
-    setError(null)
-    setStatus('waiting')
+    setIsLoading(true); setError(null); setStatus('waiting')
 
     try {
-      // Reuse existing record if one already exists (prevents duplicates)
-      const { data: existing } = await supabase
-        .from('driver_availability')
-        .select('id')
-        .eq('driver_id', userId)
-        .eq('status', 'available')
-        .maybeSingle()
-
+      const existing = await dbService.getDriverAvailability(userId)
       let recordId: string
 
       if (existing) {
         recordId = existing.id
       } else {
-        const { data, error: insertError } = await supabase
-          .from('driver_availability')
-          .insert({ driver_id: userId, status: 'available' })
-          .select('id')
-          .single()
-
-        if (insertError) throw insertError
-        recordId = data.id
+        const { data, error: insertError } = await dbService.insertDriverAvailability(userId)
+        if (insertError) throw new Error(insertError.message)
+        recordId = data!.id
       }
 
       await callMatchFunction(recordId)
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unbekannter Fehler'
-      setError(message)
-      setStatus('error')
-      setIsLoading(false)
+      setError(err instanceof Error ? err.message : 'Unbekannter Fehler')
+      setStatus('error'); setIsLoading(false)
     }
   }
 
-  const requestRide = async () => {
+  const requestRide = async (pickupLocation: string, destination: string) => {
     if (!userId) return
-    setIsLoading(true)
-    setError(null)
-    setStatus('waiting')
+    setIsLoading(true); setError(null); setStatus('waiting')
 
     try {
-      // Reuse existing record if one already exists (prevents duplicates)
-      const { data: existing } = await supabase
-        .from('guest_requests')
-        .select('id')
-        .eq('guest_id', userId)
-        .eq('status', 'waiting')
-        .maybeSingle()
-
-      let recordId: string
-
-      if (existing) {
-        recordId = existing.id
-      } else {
-        const { data, error: insertError } = await supabase
-          .from('guest_requests')
-          .insert({ guest_id: userId, status: 'waiting' })
-          .select('id')
-          .single()
-
-        if (insertError) throw insertError
-        recordId = data.id
+      const existing = await dbService.getWaitingGuestRequest(userId)
+      if (!existing) {
+        await functionsService.invokeCreateRequest(pickupLocation, destination)
       }
-
-      await callMatchFunction(recordId)
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unbekannter Fehler'
-      setError(message)
-      setStatus('error')
-      setIsLoading(false)
+      setError(err instanceof Error ? err.message : 'Unbekannter Fehler')
+      setStatus('error'); setIsLoading(false)
     }
   }
 
-  return { submitAvailability, requestRide, currentRide, status, isLoading, error }
+  const cancelRequest = async () => {
+    if (!userId) return
+    const { error: deleteError } = await dbService.deleteWaitingGuestRequest(userId)
+    if (deleteError) { setError(deleteError.message); return }
+    setStatus('idle'); setIsLoading(false); setError(null)
+  }
+
+  const confirmPickup = async () => {
+    if (!currentRide?.id) return
+    await dbService.confirmPickup(currentRide.id)
+    setCurrentRide(prev => prev ? { ...prev, status: 'picked_up' } : null)
+  }
+
+  const resetToIdle = () => {
+    setStatus('idle')
+    setCurrentRide(null)
+    setIsLoading(false)
+    setError(null)
+  }
+
+  return { submitAvailability, requestRide, cancelRequest, confirmPickup, resetToIdle, currentRide, status, isLoading, error }
 }

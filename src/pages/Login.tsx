@@ -1,6 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../auth/AuthUser'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import {
+  faEnvelope,
+  faLock,
+  faUser,
+  faCar,
+  faBicycle,
+} from '@fortawesome/free-solid-svg-icons'
 import './Login.css'
 
 type Mode = 'login' | 'register'
@@ -82,6 +90,23 @@ export default function AuthPage({ initialMode = 'login' }: Props) {
 
       <div className="login__right">
         <div className="login__card">
+          {/* Mobile tab switcher */}
+          <div className="login__tabs" role="tablist">
+            <button
+              role="tab"
+              aria-selected={mode === 'login'}
+              className={`login__tab${mode === 'login' ? ' login__tab--active' : ''}`}
+              onClick={() => switchMode('login')}
+            >Anmelden</button>
+            <button
+              role="tab"
+              aria-selected={mode === 'register'}
+              className={`login__tab${mode === 'register' ? ' login__tab--active' : ''}`}
+              onClick={() => switchMode('register')}
+            >Registrieren</button>
+          </div>
+
+          {/* Desktop heading + switch link */}
           <h1 className="login__heading">
             {mode === 'login' ? 'Anmelden' : 'Registrieren'}
           </h1>
@@ -98,28 +123,40 @@ export default function AuthPage({ initialMode = 'login' }: Props) {
               <div className="login__row">
                 <div className="login__field">
                   <label className="login__label">Vorname</label>
-                  <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)}
-                    required autoComplete="given-name" className="login__input" placeholder="Max" />
+                  <div className="login__input-wrap">
+                    <FontAwesomeIcon icon={faUser} className="login__input-icon" />
+                    <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)}
+                      required autoComplete="given-name" className="login__input" placeholder="Max" />
+                  </div>
                 </div>
                 <div className="login__field">
                   <label className="login__label">Nachname</label>
-                  <input type="text" value={familyName} onChange={e => setFamilyName(e.target.value)}
-                    required autoComplete="family-name" className="login__input" placeholder="Mustermann" />
+                  <div className="login__input-wrap">
+                    <FontAwesomeIcon icon={faUser} className="login__input-icon" />
+                    <input type="text" value={familyName} onChange={e => setFamilyName(e.target.value)}
+                      required autoComplete="family-name" className="login__input" placeholder="Mustermann" />
+                  </div>
                 </div>
               </div>
             )}
 
             <div className="login__field">
               <label className="login__label">E-Mail</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-                required autoComplete="email" className="login__input" placeholder="name@beispiel.de" />
+              <div className="login__input-wrap">
+                <FontAwesomeIcon icon={faEnvelope} className="login__input-icon" />
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+                  required autoComplete="email" className="login__input" placeholder="name@beispiel.de" />
+              </div>
             </div>
 
             <div className="login__field">
               <label className="login__label">Passwort</label>
-              <input type="password" value={password} onChange={e => setPassword(e.target.value)}
-                required autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-                className="login__input" placeholder={mode === 'register' ? 'Mindestens 6 Zeichen' : '••••••••'} />
+              <div className="login__input-wrap">
+                <FontAwesomeIcon icon={faLock} className="login__input-icon" />
+                <input type="password" value={password} onChange={e => setPassword(e.target.value)}
+                  required autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                  className="login__input" placeholder={mode === 'register' ? 'Mindestens 6 Zeichen' : '••••••••'} />
+              </div>
             </div>
 
             {mode === 'register' && (
@@ -129,7 +166,9 @@ export default function AuthPage({ initialMode = 'login' }: Props) {
                   {(['customer', 'driver'] as Role[]).map(r => (
                     <label key={r} className={`login__role${role === r ? ' login__role--active' : ''}`}>
                       <input type="radio" name="role" value={r} checked={role === r} onChange={() => setRole(r)} />
-                      <span className="login__role-icon">{r === 'customer' ? '🛺' : '🚴'}</span>
+                      <span className="login__role-icon">
+                        <FontAwesomeIcon icon={r === 'customer' ? faCar : faBicycle} />
+                      </span>
                       <span>{r === 'customer' ? 'Gast' : 'Fahrer'}</span>
                     </label>
                   ))}
@@ -142,7 +181,7 @@ export default function AuthPage({ initialMode = 'login' }: Props) {
             <button type="submit" disabled={loading} className="login__btn">
               {loading
                 ? (mode === 'login' ? 'Wird angemeldet...' : 'Wird registriert...')
-                : (mode === 'login' ? 'Anmelden →' : 'Konto erstellen →')}
+                : (mode === 'login' ? 'Anmelden' : 'Konto erstellen')}
             </button>
           </form>
         </div>

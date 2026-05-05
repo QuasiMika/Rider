@@ -1,75 +1,60 @@
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthUser'
-import { useRideMatching } from '../hooks/useRideMatching'
-import { supabase } from '../utils/supabase'
-
-type PartnerProfile = { first_name: string | null; family_name: string | null }
+import { useDriverRequests } from '../hooks/useDriverRequests'
+import { presenceService, dbService } from '../services'
+import type { Ride } from '../types/ride'
+import { DriverWaiting } from './DriverWaiting'
+import { DriverRideActive } from './DriverRideActive'
+import { DriverRideCompleted } from './DriverRideCompleted'
 
 export function DriverPanel() {
   const { user } = useAuth()
-  const { submitAvailability, currentRide, status, isLoading, error } = useRideMatching(
-    user?.id ?? '',
-    'driver'
+  const { requests, currentRide, status, isAccepting, error, acceptRequest, resetToIdle } = useDriverRequests(
+    user?.id ?? ''
   )
-  const [guest, setGuest] = useState<PartnerProfile | null>(null)
+  const [urlCompletedRide, setUrlCompletedRide] = useState<Ride | null>(null)
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  // Restore completed ride from URL param on mount
+  useEffect(() => {
+    const completedId = searchParams.get('completed')
+    if (!completedId) return
+    dbService.getRideById(completedId).then(ride => {
+      if (ride?.status === 'completed') setUrlCompletedRide(ride)
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Write URL param when ride transitions to completed
+  useEffect(() => {
+    if (currentRide?.status === 'completed') {
+      setSearchParams({ completed: currentRide.id }, { replace: true })
+    }
+  }, [currentRide?.status, currentRide?.id, setSearchParams])
 
   useEffect(() => {
-    if (!currentRide?.guest_id) return
-    supabase
-      .from('user_profile')
-      .select('first_name, family_name')
-      .eq('user_id', currentRide.guest_id)
-      .single()
-      .then(({ data }) => { if (data) setGuest(data) })
-  }, [currentRide?.guest_id])
+    if (!user?.id || status === 'matched') return
+    return presenceService.trackOnline('drivers-online', user.id)
+  }, [user?.id, status])
 
-  const guestName = guest
-    ? `${guest.first_name ?? ''} ${guest.family_name ?? ''}`.trim() || 'Gast'
-    : 'Gast'
-
-  const initials = guest
-    ? `${guest.first_name?.[0] ?? ''}${guest.family_name?.[0] ?? ''}`.toUpperCase() || '?'
-    : '?'
-
-  if (status === 'matched' && currentRide) {
-    return (
-      <div className="rm-card rm-card--matched">
-        <h2>Fahrt gefunden! 🎉</h2>
-        <div className="rm-partner">
-          <div className="rm-partner__avatar">{initials}</div>
-          <div>
-            <div className="rm-partner__label">Dein Gast</div>
-            <div className="rm-partner__name">{guestName}</div>
-          </div>
-        </div>
-        <p>
-          Status:{' '}
-          <strong style={{ color: 'var(--accent)' }}>
-            {currentRide.status === 'pending' ? 'Unterwegs zum Gast' : currentRide.status}
-          </strong>
-        </p>
-      </div>
-    )
+  const handleReset = () => {
+    setUrlCompletedRide(null)
+    setSearchParams({}, { replace: true })
+    resetToIdle()
   }
 
-  if (status === 'waiting') {
-    return (
-      <div className="rm-card">
-        <h2>Warte auf Gast...</h2>
-        <div className="ride-spinner" aria-label="Lädt" />
-        <p>Du wirst benachrichtigt, sobald ein Gast gefunden wird.</p>
-      </div>
-    )
-  }
+  const completedRide = currentRide?.status === 'completed' ? currentRide : urlCompletedRide
+  const activeRide = status === 'matched' && currentRide?.status !== 'completed' ? currentRide : null
 
+  if (completedRide) return <DriverRideCompleted ride={completedRide} onReset={handleReset} />
+  if (activeRide) return <DriverRideActive ride={activeRide} />
   return (
-    <div className="rm-card">
-      <h2>Bereit loszufahren?</h2>
-      <p>Melde dich als verfügbar und wir verbinden dich mit dem nächsten Gast.</p>
-      {error && <p className="ride-error">{error}</p>}
-      <button className="rm-btn" onClick={submitAvailability} disabled={isLoading}>
-        {isLoading ? 'Wird gemeldet...' : 'Als Fahrer verfügbar melden'}
-      </button>
-    </div>
+    <DriverWaiting
+      requests={requests}
+      isAccepting={isAccepting}
+      error={error}
+      onAccept={acceptRequest}
+    />
   )
 }

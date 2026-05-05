@@ -1,7 +1,6 @@
 .login {
   display: flex;
   flex: 1;
-  min-height: calc(100svh - 64px);
 }
 
 /* ─── Left panel ─────────────────────────────────────────── */
@@ -104,6 +103,10 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* ─── Mobile-only elements (hidden on desktop) ───────────── */
+.login__tabs { display: none; }
+
+/* ─── Desktop heading + switch ───────────────────────────── */
 .login__heading {
   font-size: 28px;
   font-weight: 700;
@@ -157,10 +160,26 @@
   letter-spacing: 0.06em;
 }
 
+/* ─── Input with icon ────────────────────────────────────── */
+.login__input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.login__input-icon {
+  position: absolute;
+  left: 0.85rem;
+  color: var(--text);
+  opacity: 0.45;
+  font-size: 14px;
+  pointer-events: none;
+}
+
 .login__input {
   font-family: var(--sans);
   font-size: 15px;
-  padding: 0.65rem 0.9rem;
+  padding: 0.65rem 0.9rem 0.65rem 2.5rem;
   border-radius: 10px;
   border: 1px solid var(--border);
   background: var(--code-bg);
@@ -173,6 +192,10 @@
 .login__input:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-bg);
+}
+.login__input-wrap:focus-within .login__input-icon {
+  opacity: 0.7;
+  color: var(--accent);
 }
 
 /* ─── Role picker ────────────────────────────────────────── */
@@ -206,7 +229,7 @@
   color: var(--accent);
 }
 
-.login__role-icon { font-size: 22px; line-height: 1; }
+.login__role-icon { font-size: 20px; line-height: 1; }
 
 /* ─── Misc ───────────────────────────────────────────────── */
 .login__error {
@@ -230,12 +253,12 @@
   transition: filter 0.15s, transform 0.1s;
 }
 .login__btn:hover:not(:disabled) { filter: brightness(0.88); transform: translateY(-1px); }
-.login__btn:active { transform: translateY(0); }
-.login__btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.login__btn:active               { transform: translateY(0); }
+.login__btn:disabled             { opacity: 0.5; cursor: not-allowed; transform: none; }
 
 [data-theme='dark'] .login__btn { background: #16a34a; }
 
-/* ─── Responsive ─────────────────────────────────────────── */
+/* ─── Tablet ─────────────────────────────────────────────── */
 @media (max-width: 720px) {
   .login { flex-direction: column; }
   .login__left {
@@ -245,4 +268,92 @@
     border-bottom: 1px solid var(--accent-border);
   }
   .login__right { padding: 2rem 1.5rem; }
+}
+
+/* ─── Mobile ─────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  /* Lock the page to the available viewport — no page-level scroll */
+  .login {
+    display: flex;
+    flex-direction: column;
+    height: calc(100svh - 64px); /* subtract sticky top nav */
+    min-height: unset;
+    overflow: hidden;
+    background: var(--bg);
+  }
+
+  .login__left { display: none; }
+
+  /* Right panel fills all remaining space and scrolls internally */
+  .login__right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    padding: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    background: var(--bg);
+  }
+
+  /* Plain content area — no card chrome */
+  .login__card {
+    width: 100%;
+    max-width: none;
+    box-sizing: border-box;
+    padding: 1.25rem 1.25rem calc(1.5rem + env(safe-area-inset-bottom) + 64px);
+    border-radius: 0;
+    box-shadow: none;
+    animation: none;
+  }
+
+  /* Segmented tab control */
+  .login__tabs {
+    display: flex;
+    background: var(--code-bg);
+    border-radius: 10px;
+    padding: 3px;
+    margin-bottom: 1.25rem;
+    box-sizing: border-box;
+  }
+
+  .login__tab {
+    flex: 1;
+    padding: 9px 0;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+  }
+
+  .login__tab--active {
+    background: var(--bg);
+    color: var(--accent);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  }
+
+  /* Hide desktop heading/switch */
+  .login__heading { display: none; }
+  .login__sub     { display: none; }
+
+  /* 16px prevents iOS auto-zoom on focus */
+  .login__input {
+    font-size: 16px;
+    padding: 0.75rem 0.85rem 0.75rem 2.6rem;
+  }
+
+  /* Stack name fields */
+  .login__row { grid-template-columns: 1fr; }
+
+  .login__btn {
+    font-size: 16px;
+    padding: 0.875rem;
+    margin-top: 0.5rem;
+  }
 }
