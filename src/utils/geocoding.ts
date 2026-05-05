@@ -14,6 +14,10 @@ export function enqueue<T>(fn: () => Promise<T>): Promise<T> {
   return next
 }
 
+const NOMINATIM = import.meta.env.DEV
+  ? '/nominatim'
+  : 'https://nominatim.openstreetmap.org'
+
 const COORD_RE = /^-?\d+\.?\d*\s*,\s*-?\d+\.?\d*$/
 
 export async function geocode(query: string, signal?: AbortSignal): Promise<LatLng | null> {
@@ -29,7 +33,7 @@ export async function geocode(query: string, signal?: AbortSignal): Promise<LatL
 
   return enqueue(async () => {
     if (signal?.aborted) return null
-    const url = `/nominatim/search?q=${encodeURIComponent(query)}&format=json&limit=1&accept-language=de`
+    const url = `${NOMINATIM}/search?q=${encodeURIComponent(query)}&format=json&limit=1&accept-language=de`
     const res = await fetch(url, signal ? { signal } : undefined)
     if (!res.ok) { cache.set(query, null); return null }
     const data = await res.json()
