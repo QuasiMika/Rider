@@ -12,7 +12,7 @@ import './GuestPanel.css'
 
 export function GuestPanel() {
   const { user } = useAuth()
-  const { requestRide, cancelRequest, confirmPickup, resetToIdle, currentRide, status, isLoading, error } = useRideMatching(
+  const { requestRide, cancelRequest, resetToIdle, currentRide, status, isLoading, error } = useRideMatching(
     user?.id ?? '',
     'guest'
   )
