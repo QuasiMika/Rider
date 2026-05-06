@@ -79,6 +79,7 @@ export interface DbService {
 
   // RPCs
   confirmPickup(rideId: string): Promise<void>
+  confirmPickupByDriver(rideId: string, code: string): Promise<boolean>
   completeRide(rideId: string, location: string): Promise<void>
   getPublicStats(): Promise<{ total_users: number; completed_rides: number; total_distance_km: number } | null>
 }

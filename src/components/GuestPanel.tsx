@@ -68,7 +68,7 @@ export function GuestPanel() {
       {completedRide
         ? <GuestRideCompleted ride={completedRide} userId={user?.id ?? ''} onNewRide={handleNewRide} />
         : status === 'matched' && currentRide
-        ? <GuestRideActive ride={currentRide} onConfirmPickup={confirmPickup} />
+        ? <GuestRideActive ride={currentRide} />
         : status === 'waiting'
         ? <GuestSearching onCancel={cancelRequest} />
         : <GuestBooking onlineDrivers={onlineDrivers} isLoading={isLoading} error={error} onRequest={requestRide} />

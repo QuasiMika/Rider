@@ -670,6 +670,93 @@
   cursor: grab;
 }
 
+/* ─── Pickup code display (guest) ────────────────────────── */
+.pickup-code-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 1.25rem 1.5rem;
+  background: var(--accent-faint, rgba(99,102,241,0.08));
+  border: 2px solid var(--accent, #6366f1);
+  border-radius: 1rem;
+  margin-top: 0.75rem;
+}
+.pickup-code-display__label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-secondary, #6b7280);
+}
+.pickup-code-display__code {
+  font-size: 3rem;
+  font-weight: 800;
+  letter-spacing: 0.25em;
+  color: var(--accent, #6366f1);
+  font-variant-numeric: tabular-nums;
+}
+.pickup-code-display__hint {
+  font-size: 0.78rem;
+  color: var(--text-secondary, #6b7280);
+}
+.pickup-code-display--error {
+  border-color: #ef4444;
+  background: rgba(239,68,68,0.06);
+}
+.pickup-code-display__error {
+  font-size: 0.9rem;
+  color: #ef4444;
+  font-weight: 500;
+}
+
+/* ─── Pickup code input (driver) ────────────────────────── */
+.pickup-code-input {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem 1.25rem;
+  background: var(--card-bg, #fff);
+  border: 1.5px solid var(--border, #e5e7eb);
+  border-radius: 0.875rem;
+  margin-top: 0.75rem;
+}
+.pickup-code-input__label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-secondary, #6b7280);
+}
+.pickup-code-input__row {
+  display: flex;
+  gap: 0.625rem;
+  align-items: center;
+}
+.pickup-code-input__field {
+  flex: 1;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 0.35em;
+  text-align: center;
+  padding: 0.5rem 0.75rem;
+  border: 2px solid var(--border, #e5e7eb);
+  border-radius: 0.625rem;
+  background: var(--input-bg, #f9fafb);
+  color: var(--text, #111827);
+  font-variant-numeric: tabular-nums;
+  max-width: 130px;
+}
+.pickup-code-input__field:focus {
+  outline: none;
+  border-color: var(--accent, #6366f1);
+}
+.pickup-code-input__error {
+  font-size: 0.82rem;
+  color: #ef4444;
+  font-weight: 500;
+}
+
 /* ─── Driver idle page ───────────────────────────────────── */
 .driver-idle {
   width: 100%;

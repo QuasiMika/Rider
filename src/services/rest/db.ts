@@ -170,6 +170,18 @@ export const restDbService: DbService = {
     await apiFetch(`/rides/${rideId}/confirm-pickup`, { method: 'POST' })
   },
 
+  async confirmPickupByDriver(rideId, code) {
+    try {
+      const result = await apiFetch<{ success: boolean }>(`/rides/${rideId}/confirm-pickup-by-driver`, {
+        method: 'POST',
+        body: JSON.stringify({ code }),
+      })
+      return result.success === true
+    } catch {
+      return false
+    }
+  },
+
   async completeRide(rideId, location) {
     await apiFetch(`/rides/${rideId}/complete`, {
       method: 'POST',

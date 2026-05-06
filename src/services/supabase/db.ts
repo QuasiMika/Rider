@@ -72,9 +72,10 @@ export const supabaseDbService: DbService = {
   },
 
   async insertGuestRequest(guestId, pickupLocation, destination) {
+    const pickup_code = String(Math.floor(Math.random() * 10000)).padStart(4, '0')
     const { error } = await supabase
       .from('guest_requests')
-      .insert({ guest_id: guestId, status: 'waiting', pickup_location: pickupLocation, destination })
+      .insert({ guest_id: guestId, status: 'waiting', pickup_location: pickupLocation, destination, pickup_code })
     return { error: error ? { message: error.message } : null }
   },
 
@@ -163,6 +164,11 @@ export const supabaseDbService: DbService = {
 
   async confirmPickup(rideId) {
     await supabase.rpc('confirm_pickup', { p_ride_id: rideId })
+  },
+
+  async confirmPickupByDriver(rideId, code) {
+    const { data } = await supabase.rpc('confirm_pickup_by_driver', { p_ride_id: rideId, p_code: code })
+    return data === true
   },
 
   async completeRide(rideId, location) {

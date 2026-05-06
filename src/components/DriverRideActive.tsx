@@ -26,6 +26,9 @@ export function DriverRideActive({ ride }: Props) {
   const [guest, setGuest] = useState<PartnerProfile | null>(null)
   const [completeSlider, setCompleteSlider] = useState(0)
   const [completing, setCompleting] = useState(false)
+  const [pickupCode, setPickupCode] = useState('')
+  const [codeError, setCodeError] = useState<string | null>(null)
+  const [verifying, setVerifying] = useState(false)
 
   const { driverPosition, approachPolyline } = useDriverLocation(ride.id, ride.pickup_location ?? undefined)
   const { pickupName, destName } = useResolvedNames(ride.id, ride.pickup_location, ride.destination)
@@ -43,6 +46,17 @@ export function DriverRideActive({ ride }: Props) {
     const location = driverPosition ? `${driverPosition[0]},${driverPosition[1]}` : ''
     await dbService.completeRide(ride.id, location)
     setCompleteSlider(0); setCompleting(false)
+  }
+
+  const handleConfirmPickup = async () => {
+    if (pickupCode.length !== 4) return
+    setVerifying(true)
+    setCodeError(null)
+    const ok = await dbService.confirmPickupByDriver(ride.id, pickupCode)
+    if (!ok) {
+      setCodeError('Falscher Code. Bitte erneut versuchen.')
+    }
+    setVerifying(false)
   }
 
   const guestName = guest
@@ -97,6 +111,31 @@ export function DriverRideActive({ ride }: Props) {
               <span className="rm-btn--maps__main"><FontAwesomeIcon icon={faLocationDot} /> Zum Abholort navigieren</span>
               <span className="rm-btn--maps__sub">Öffnet {mapsApp}</span>
             </button>
+          )}
+
+          {ride.status === 'pending' && (
+            <div className="pickup-code-input">
+              <div className="pickup-code-input__label">Abholcode des Fahrgasts</div>
+              <div className="pickup-code-input__row">
+                <input
+                  className="pickup-code-input__field"
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={4}
+                  placeholder="0000"
+                  value={pickupCode}
+                  onChange={e => { setPickupCode(e.target.value.replace(/\D/g, '')); setCodeError(null) }}
+                />
+                <button
+                  className="rm-btn rm-btn--accept"
+                  onClick={handleConfirmPickup}
+                  disabled={pickupCode.length !== 4 || verifying}
+                >
+                  {verifying ? 'Prüfe…' : 'Bestätigen'}
+                </button>
+              </div>
+              {codeError && <div className="pickup-code-input__error">{codeError}</div>}
+            </div>
           )}
 
           {ride.status === 'picked_up' && ride.destination && (

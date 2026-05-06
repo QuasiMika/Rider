@@ -42,6 +42,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     // Price is calculated before insert so drivers immediately see it in the list.
     const price_eur = await calculatePriceEur(pickupLocation, destination)
+    const pickup_code = String(Math.floor(Math.random() * 10000)).padStart(4, '0')
 
     const { data, error } = await supabase
       .from('guest_requests')
@@ -51,6 +52,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         pickup_location: pickupLocation,
         destination,
         price_eur,
+        pickup_code,
       })
       .select('id')
       .single()

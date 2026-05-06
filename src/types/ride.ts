@@ -27,6 +27,7 @@ export type Ride = {
   destination?: string
   actual_end_location?: string
   price_eur?: number | null
+  pickup_code?: string | null
   created_at: string
 }
 

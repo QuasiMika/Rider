@@ -10,16 +10,13 @@ type PartnerProfile = { first_name: string | null; family_name: string | null }
 
 type Props = {
   ride: Ride
-  onConfirmPickup: () => Promise<void>
 }
 
-export function GuestRideActive({ ride, onConfirmPickup }: Props) {
+export function GuestRideActive({ ride }: Props) {
   const [driver, setDriver] = useState<PartnerProfile | null>(null)
   const [driverPosition, setDriverPosition] = useState<[number, number] | null>(null)
   const [etaSeconds, setEtaSeconds] = useState<number | null>(null)
   const [approachPolyline, setApproachPolyline] = useState<[number, number][] | null>(null)
-  const [sliderValue, setSliderValue] = useState(0)
-  const [confirming, setConfirming] = useState(false)
 
   const { pickupName, destName } = useResolvedNames(ride.id, ride.pickup_location, ride.destination)
 
@@ -38,13 +35,6 @@ export function GuestRideActive({ ride, onConfirmPickup }: Props) {
       if (Array.isArray(payload.approachPolyline)) setApproachPolyline(payload.approachPolyline as [number, number][])
     })
   }, [ride.id])
-
-  const handleSliderRelease = async () => {
-    if (sliderValue < 90) { setSliderValue(0); return }
-    setConfirming(true)
-    await onConfirmPickup()
-    setSliderValue(0); setConfirming(false)
-  }
 
   const driverName = driver
     ? `${driver.first_name ?? ''} ${driver.family_name ?? ''}`.trim() || 'Fahrer'
@@ -102,21 +92,20 @@ export function GuestRideActive({ ride, onConfirmPickup }: Props) {
           )}
 
           {ride.status === 'pending' && (
-            <div className="pickup-slider-wrap">
-              <span className="pickup-slider-label">
-                {confirming ? 'Bestätige…' : 'Zum Bestätigen der Abholung schieben →'}
-              </span>
-              <input
-                type="range"
-                className="pickup-slider"
-                min={0} max={100}
-                value={sliderValue}
-                onChange={e => setSliderValue(Number(e.target.value))}
-                onMouseUp={handleSliderRelease}
-                onTouchEnd={handleSliderRelease}
-                disabled={confirming}
-              />
-            </div>
+            ride.pickup_code
+              ? (
+                <div className="pickup-code-display">
+                  <div className="pickup-code-display__label">Dein Abholcode</div>
+                  <div className="pickup-code-display__code">{ride.pickup_code}</div>
+                  <div className="pickup-code-display__hint">Zeige diesen Code deinem Fahrer</div>
+                </div>
+              )
+              : (
+                <div className="pickup-code-display pickup-code-display--error">
+                  <div className="pickup-code-display__label">Abholcode</div>
+                  <div className="pickup-code-display__error">Code konnte nicht geladen werden</div>
+                </div>
+              )
           )}
         </div>
 
