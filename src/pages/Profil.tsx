@@ -53,7 +53,7 @@ function RideCta({ userId, role }: { userId: string; role: 'driver' | 'guest' })
   return (
     <div className="profil-card profil-card--cta" onClick={() => navigate('/ride')}>
       <div className="profil-card__label">Bereit?</div>
-      <div className="profil-card__value">Fahrt buchen →</div>
+      <div className="profil-card__value">{role === 'driver' ? 'Online gehen →' : 'Fahrt buchen →'}</div>
     </div>
   )
 }
@@ -178,6 +178,13 @@ export default function Profil() {
                 )}
               </div>
             </div>
+
+            {profile.role === 'driver' && (
+              <div className="profil-card profil-card--cta" onClick={() => navigate('/einnahmen')}>
+                <div className="profil-card__label">Einnahmen</div>
+                <div className="profil-card__value">Aufschlüsselung →</div>
+              </div>
+            )}
 
             <RideCta userId={user?.id ?? ''} role={userRole} />
           </div>

@@ -29,6 +29,7 @@ export type Ride = {
   price_eur?: number | null
   pickup_code?: string | null
   created_at: string
+  completed_at?: string | null
 }
 
 export type RideReport = {

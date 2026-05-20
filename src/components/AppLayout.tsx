@@ -12,7 +12,7 @@ import {
   faMoon,
   faRightFromBracket,
   faCar,
-  faChartBar,
+  faShield,
 } from '@fortawesome/free-solid-svg-icons'
 import '../pages/LandingPage.css'
 
@@ -21,11 +21,13 @@ export function AppLayout() {
   const { theme, toggle } = useTheme()
   const navigate = useNavigate()
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [isDriver, setIsDriver] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
-    if (!user) { setIsDriver(false); return }
-    dbService.getUserProfile(user.id).then(({ data }) => setIsDriver(data?.role === 'driver'))
+    if (!user) { setIsAdmin(false); return }
+    dbService.getUserProfile(user.id).then(({ data }) => {
+      setIsAdmin(data?.role === 'admin')
+    })
   }, [user])
 
   useEffect(() => {
@@ -49,9 +51,9 @@ export function AppLayout() {
           </button>
           {user ? (
             <>
-              {isDriver && (
-                <Link to="/einnahmen">
-                  <button className="lp-btn lp-btn--ghost">Einnahmen</button>
+              {isAdmin && (
+                <Link to="/admin">
+                  <button className="lp-btn lp-btn--ghost">Admin</button>
                 </Link>
               )}
               <Link to="/profil">
@@ -95,13 +97,13 @@ export function AppLayout() {
               <span className="bottom-nav__icon"><FontAwesomeIcon icon={faCar} /></span>
               <span className="bottom-nav__label">Fahrt</span>
             </NavLink>
-            {isDriver && (
+            {isAdmin && (
               <NavLink
-                to="/einnahmen"
+                to="/admin"
                 className={({ isActive }) => `bottom-nav__item${isActive ? ' bottom-nav__item--active' : ''}`}
               >
-                <span className="bottom-nav__icon"><FontAwesomeIcon icon={faChartBar} /></span>
-                <span className="bottom-nav__label">Einnahmen</span>
+                <span className="bottom-nav__icon"><FontAwesomeIcon icon={faShield} /></span>
+                <span className="bottom-nav__label">Admin</span>
               </NavLink>
             )}
             <NavLink

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthUser'
 import { useDriverRequests } from '../hooks/useDriverRequests'
-import { presenceService, dbService } from '../services'
+import { presenceService, dbService, realtimeService } from '../services'
 import type { Ride } from '../types/ride'
 import { DriverWaiting } from './DriverWaiting'
 import { DriverRideActive } from './DriverRideActive'
@@ -15,6 +15,21 @@ export function DriverPanel() {
   )
   const [urlCompletedRide, setUrlCompletedRide] = useState<Ride | null>(null)
   const [searchParams, setSearchParams] = useSearchParams()
+  const [isWorking, setIsWorking] = useState<boolean | null>(null)
+
+  // Load currently_working on mount
+  useEffect(() => {
+    if (!user?.id) return
+    dbService.getUserProfile(user.id).then(({ data }) => {
+      setIsWorking(data?.currently_working ?? true)
+    })
+  }, [user?.id])
+
+  // Subscribe to admin status changes in real-time
+  useEffect(() => {
+    if (!user?.id) return
+    return realtimeService.subscribeDriverWorking(user.id, setIsWorking)
+  }, [user?.id])
 
   // Restore completed ride from URL param on mount
   useEffect(() => {
@@ -33,10 +48,11 @@ export function DriverPanel() {
     }
   }, [currentRide?.status, currentRide?.id, setSearchParams])
 
+  // Only track presence when admin has set driver as active
   useEffect(() => {
-    if (!user?.id || status === 'matched') return
+    if (!user?.id || status === 'matched' || isWorking !== true) return
     return presenceService.trackOnline('drivers-online', user.id)
-  }, [user?.id, status])
+  }, [user?.id, status, isWorking])
 
   const handleReset = () => {
     setUrlCompletedRide(null)
@@ -49,6 +65,19 @@ export function DriverPanel() {
 
   if (completedRide) return <DriverRideCompleted ride={completedRide} onReset={handleReset} />
   if (activeRide) return <DriverRideActive ride={activeRide} />
+
+  if (isWorking === false) {
+    return (
+      <div className="ride-panel ride-panel--waiting" style={{ marginTop: '2rem' }}>
+        <p style={{ fontSize: '2rem' }}>⏸</p>
+        <p style={{ color: 'var(--text-h)', fontWeight: 600 }}>Dein Konto ist deaktiviert</p>
+        <p style={{ color: 'var(--text)', fontSize: '0.9rem' }}>
+          Ein Administrator muss dein Konto aktivieren, bevor du Fahrten annehmen kannst.
+        </p>
+      </div>
+    )
+  }
+
   return (
     <DriverWaiting
       requests={requests}

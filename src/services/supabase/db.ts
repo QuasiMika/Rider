@@ -179,6 +179,31 @@ export const supabaseDbService: DbService = {
     const { data } = await supabase.rpc('get_public_stats')
     return data ?? null
   },
+
+  async getAdminStats() {
+    const { data } = await supabase.rpc('get_admin_stats')
+    return data ?? null
+  },
+
+  async getAllRides() {
+    const { data } = await supabase.rpc('get_admin_rides')
+    return (data as Ride[]) ?? []
+  },
+
+  async getAllDrivers() {
+    const { data } = await supabase.rpc('get_admin_drivers')
+    return (data as UserProfile[]) ?? []
+  },
+
+  async getAdminDriverRides(driverId) {
+    const { data } = await supabase.rpc('get_admin_driver_rides', { p_driver_id: driverId })
+    return (data as Ride[]) ?? []
+  },
+
+  async setDriverWorking(userId, working) {
+    const { error } = await supabase.rpc('set_driver_working', { p_driver_id: userId, p_working: working })
+    return { error: error ? { message: error.message } : null }
+  },
 }
 
 // keep toError available for future use

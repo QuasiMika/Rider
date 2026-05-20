@@ -1,0 +1,864 @@
+.admin-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 1rem 4rem;
+}
+
+.admin-header {
+  margin-bottom: 1.5rem;
+}
+
+.admin-header__title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem;
+  color: var(--text-h);
+}
+
+.admin-header__sub {
+  color: var(--text);
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+/* Tabs */
+.admin-tabs {
+  display: flex;
+  gap: 0.25rem;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 1.75rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.admin-tabs::-webkit-scrollbar { display: none; }
+
+.admin-tab {
+  background: none;
+  border: none;
+  padding: 0.6rem 1.1rem;
+  font-size: 0.95rem;
+  cursor: pointer;
+  color: var(--text);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: color 0.15s, border-color 0.15s;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.admin-tab:hover { color: var(--text-h); }
+
+.admin-tab--active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* Dashboard stats */
+.admin-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+.admin-stat-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+}
+
+.admin-stat-card__label {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text);
+  margin-bottom: 0.4rem;
+}
+
+.admin-stat-card__value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.admin-stat-card__sub {
+  font-size: 0.75rem;
+  color: var(--text);
+  margin-top: 0.35rem;
+}
+
+/* Filter bar */
+.admin-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+  align-items: center;
+}
+
+.admin-select,
+.admin-input {
+  padding: 0.45rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: var(--bg);
+  color: var(--text-h);
+  outline: none;
+  min-width: 0;
+}
+
+.admin-select:focus,
+.admin-input:focus {
+  border-color: var(--accent);
+}
+
+.admin-filter-bar__count {
+  font-size: 0.85rem;
+  color: var(--text);
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+/* Table wrapper — scrolls independently */
+.admin-table-wrap {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  /* horizontal + vertical scroll within the box */
+  overflow-x: auto;
+  max-height: 560px;
+  overflow-y: auto;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  table-layout: fixed;
+  /* min-width prevents columns collapsing on narrow containers */
+  min-width: 860px;
+}
+
+/* Fixed column widths */
+.admin-table th:nth-child(1) { width: 120px; } /* Status */
+.admin-table th:nth-child(2) { width: 130px; } /* Fahrer */
+.admin-table th:nth-child(3) { width: 130px; } /* Fahrgast */
+.admin-table th:nth-child(4) { width: auto;   } /* Abholung */
+.admin-table th:nth-child(5) { width: auto;   } /* Ziel */
+.admin-table th:nth-child(6) { width: 70px;   } /* Preis */
+.admin-table th:nth-child(7) { width: 130px;  } /* Start */
+.admin-table th:nth-child(8) { width: 130px;  } /* Ende */
+
+.admin-table th {
+  text-align: left;
+  padding: 0.65rem 0.85rem;
+  background: var(--code-bg);
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  /* sticky so header stays visible while scrolling */
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.admin-th--sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.admin-th--sortable:hover {
+  color: var(--accent);
+}
+
+.admin-sort-icon {
+  font-size: 0.75rem;
+  margin-left: 0.25rem;
+  color: var(--accent);
+}
+
+.admin-sort-icon--idle {
+  color: var(--text);
+  opacity: 0.4;
+}
+
+.admin-table td {
+  padding: 0.65rem 0.85rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-h);
+}
+
+.admin-table tr:last-child td { border-bottom: none; }
+
+.admin-table tr:hover td {
+  background: var(--accent-bg);
+}
+
+.admin-table__location {
+  color: var(--text);
+  font-size: 0.82rem;
+}
+
+.admin-table__time {
+  font-size: 0.82rem;
+  color: var(--text);
+}
+
+/* Status badges */
+.admin-badge {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* pending: amber — neutral waiting state */
+.admin-badge--pending   { background: #fef3c7; color: #92400e; }
+/* picked_up / active: brand green */
+.admin-badge--picked_up { background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-border); }
+.admin-badge--active    { background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-border); }
+/* completed: neutral */
+.admin-badge--completed { background: var(--border); color: var(--text); }
+.admin-badge--inactive    { background: var(--border); color: var(--text); }
+.admin-badge--deactivated { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+
+/* Driver list */
+.admin-driver-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.admin-driver-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+}
+
+.admin-driver-row__avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+
+.admin-driver-row__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-driver-row__name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text-h);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-driver-row__meta {
+  font-size: 0.8rem;
+  color: var(--text);
+}
+
+.admin-driver-row__status { flex-shrink: 0; }
+
+.admin-toggle-btn {
+  padding: 0.4rem 0.9rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: opacity 0.15s, background 0.15s;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.admin-toggle-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.admin-toggle-btn--activate {
+  background: var(--accent);
+  color: #fff;
+}
+
+.admin-toggle-btn--deactivate {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text-h);
+}
+
+.admin-toggle-btn--deactivate:hover:not(:disabled) {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #991b1b;
+}
+
+.admin-toggle-btn--details {
+  background: transparent;
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+
+.admin-toggle-btn--details:hover {
+  background: var(--accent-bg);
+}
+
+/* ── Driver Detail Card ── */
+.admin-detail-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 400;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  animation: admin-fade-in 0.15s ease;
+}
+
+@keyframes admin-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.admin-detail-card {
+  background: var(--bg);
+  border-radius: 20px 20px 0 0;
+  padding: 0.5rem 1.5rem 2rem;
+  width: 100%;
+  max-width: 560px;
+  max-height: 85svh;
+  overflow-y: auto;
+  animation: admin-slide-up 0.2s ease;
+}
+
+@keyframes admin-slide-up {
+  from { transform: translateY(40px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.admin-detail-card__handle {
+  width: 40px;
+  height: 4px;
+  background: var(--border);
+  border-radius: 999px;
+  margin: 0.6rem auto 1.25rem;
+}
+
+.admin-detail-header {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+
+.admin-detail-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.admin-detail-header__info {
+  min-width: 0;
+}
+
+.admin-detail-header__name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-h);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-detail-header__email {
+  font-size: 0.85rem;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-detail-header__date {
+  font-size: 0.8rem;
+  color: var(--text);
+  opacity: 0.7;
+  margin-top: 0.1rem;
+}
+
+.admin-detail-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1.25rem;
+}
+
+.admin-detail-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.admin-detail-stat {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+}
+
+.admin-detail-stat--full {
+  grid-column: 1 / -1;
+}
+
+.admin-detail-stat__label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text);
+  margin-bottom: 0.3rem;
+}
+
+.admin-detail-stat__value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.admin-detail-stat__empty {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--text);
+}
+
+/* ── Detail sub-view navigation ── */
+.admin-detail-back {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0 0 1rem;
+  display: block;
+}
+
+.admin-detail-back:hover { opacity: 0.75; }
+
+.admin-detail-sub-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-h);
+  margin: 0 0 1.25rem;
+}
+
+/* Clickable stat tiles */
+.admin-detail-stat--clickable {
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.admin-detail-stat--clickable:hover {
+  border-color: var(--accent-border);
+  background: var(--accent-bg);
+}
+
+.admin-detail-stat__hint {
+  font-size: 0.72rem;
+  color: var(--accent);
+  margin-top: 0.3rem;
+  font-weight: 500;
+}
+
+/* Earnings summary row inside detail card */
+.admin-detail-ein-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+  margin-bottom: 0.25rem;
+}
+
+.admin-detail-ein-card {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.7rem 0.85rem;
+}
+
+.admin-detail-ein-card .admin-detail-stat__value {
+  font-size: 1rem;
+}
+
+/* Wider card for rides sub-view on desktop */
+@media (min-width: 641px) {
+  .admin-detail-card--wide {
+    max-width: 680px;
+  }
+}
+
+/* Ride list inside detail card */
+.admin-detail-search-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.admin-detail-search-row .admin-input { flex: 1; }
+
+.admin-ride-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.admin-ride-item {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.7rem 0.9rem;
+}
+
+.admin-ride-item--clickable {
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.admin-ride-item--clickable:hover {
+  border-color: var(--accent-border);
+  background: var(--accent-bg);
+}
+
+/* Primary row: guest name + date */
+.admin-ride-item__main {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.admin-ride-item__guest {
+  font-size: 0.925rem;
+  font-weight: 600;
+  color: var(--text-h);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-ride-item__date {
+  font-size: 0.775rem;
+  color: var(--text);
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+/* Secondary row: route hint + price */
+.admin-ride-item__meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.775rem;
+  color: var(--text);
+}
+
+.admin-ride-item__route-hint {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.7;
+}
+
+.admin-ride-item__price {
+  font-weight: 700;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+/* ── Ride detail view ── */
+.admin-ride-detail__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1.1rem;
+}
+
+.admin-ride-detail__ts {
+  font-size: 0.8rem;
+  color: var(--text);
+}
+
+.admin-ride-detail__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+  margin-bottom: 1.5rem;
+}
+
+.admin-ride-detail__field {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.7rem 0.85rem;
+}
+
+.admin-ride-detail__field--full {
+  grid-column: 1 / -1;
+}
+
+.admin-ride-detail__label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text);
+  margin-bottom: 0.25rem;
+  font-weight: 600;
+  opacity: 0.75;
+}
+
+.admin-ride-detail__value {
+  font-size: 0.925rem;
+  font-weight: 600;
+  color: var(--text-h);
+  word-break: break-word;
+}
+
+.admin-ride-detail__value--name {
+  font-size: 1.05rem;
+}
+
+.admin-ride-detail__value--accent {
+  color: var(--accent);
+  font-size: 1.1rem;
+}
+
+.admin-ride-detail__value--sm {
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.admin-detail-close {
+  width: 100%;
+  padding: 0.7rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-h);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-detail-close:hover {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+
+@media (min-width: 641px) {
+  .admin-detail-backdrop {
+    align-items: center;
+    padding: 1.5rem;
+  }
+
+  .admin-detail-card {
+    border-radius: 16px;
+    max-height: 80svh;
+  }
+
+  .admin-detail-card__handle {
+    display: none;
+  }
+}
+
+/* Misc */
+.admin-loading,
+.admin-empty,
+.admin-error {
+  padding: 3rem 1rem;
+  text-align: center;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.admin-error { color: #dc2626; }
+
+/* ── Responsive ────────────────────────────────────────────── */
+
+@media (max-width: 1100px) {
+  .admin-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-page {
+    padding: 1.25rem 0.75rem 5rem;
+  }
+
+  .admin-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-filter-bar__count {
+    margin-left: 0;
+    text-align: right;
+  }
+
+  /* ── Table → Card layout ── */
+  .admin-table-wrap {
+    border: none;
+    border-radius: 0;
+    overflow: visible;
+    max-height: none;
+  }
+
+  .admin-table {
+    display: block;
+    min-width: 0;
+    table-layout: auto;
+  }
+
+  .admin-table thead {
+    display: none;
+  }
+
+  .admin-table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .admin-table tr {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--bg);
+  }
+
+  /* Status badge spans full width at the top */
+  .admin-table td:nth-child(1) {
+    grid-column: 1 / -1;
+    background: var(--code-bg);
+    border-bottom: 1px solid var(--border);
+    padding: 0.5rem 0.85rem;
+    justify-content: flex-start;
+  }
+
+  .admin-table td:nth-child(1)::before {
+    display: none;
+  }
+
+  /* Preis, Start, Ende: span full width */
+  .admin-table td:nth-child(6),
+  .admin-table td:nth-child(7),
+  .admin-table td:nth-child(8) {
+    grid-column: 1 / -1;
+  }
+
+  .admin-table td {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0.6rem 0.85rem;
+    border-bottom: 1px solid var(--border);
+    overflow: visible;
+    white-space: normal;
+    text-overflow: clip;
+  }
+
+  .admin-table tr td:nth-last-child(1),
+  .admin-table tr td:nth-last-child(2):not(:nth-child(1)) {
+    border-bottom: none;
+  }
+
+  .admin-table td::before {
+    content: attr(data-label);
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text);
+    opacity: 0.7;
+  }
+
+  .admin-table__location,
+  .admin-table__time {
+    white-space: normal;
+    font-size: 0.85rem;
+    color: var(--text-h);
+  }
+
+  .admin-detail-ein-summary {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* Driver row on small screens */
+  .admin-driver-row {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .admin-driver-row__status {
+    order: -1;
+    margin-left: auto;
+  }
+
+  .admin-toggle-btn {
+    width: 100%;
+    text-align: center;
+    padding: 0.5rem;
+  }
+}

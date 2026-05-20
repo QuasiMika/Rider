@@ -40,6 +40,11 @@ export interface RealtimeService {
     onLocation: (payload: DriverLocationPayload) => void,
   ): () => void
 
+  subscribeDriverWorking(
+    userId: string,
+    onUpdate: (working: boolean) => void,
+  ): () => void
+
   createLocationBroadcast(rideId: string): LocationBroadcast
 }
 
