@@ -198,4 +198,48 @@ export const restDbService: DbService = {
       return null
     }
   },
+
+  async getAdminStats() {
+    try {
+      return await apiFetch('/admin/stats')
+    } catch {
+      return null
+    }
+  },
+
+  async getAllRides() {
+    try {
+      return await apiFetch('/admin/rides')
+    } catch {
+      return []
+    }
+  },
+
+  async getAllDrivers() {
+    try {
+      return await apiFetch('/admin/drivers')
+    } catch {
+      return []
+    }
+  },
+
+  async getAdminDriverRides(driverId) {
+    try {
+      return await apiFetch(`/admin/drivers/${driverId}/rides`)
+    } catch {
+      return []
+    }
+  },
+
+  async setDriverWorking(userId, working) {
+    try {
+      await apiFetch(`/admin/drivers/${userId}/working`, {
+        method: 'PATCH',
+        body: JSON.stringify({ working }),
+      })
+      return { error: null }
+    } catch (e) {
+      return { error: toError(e) }
+    }
+  },
 }

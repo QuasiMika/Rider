@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthUser'
 import { dbService } from '../services'
 import type { Ride } from '../types/ride'
@@ -81,6 +82,7 @@ function BarChart({ data }: { data: MonthBar[] }) {
 
 export default function Einnahmen() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [rides, setRides] = useState<Ride[]>([])
   const [loading, setLoading] = useState(true)
   const [isDriver, setIsDriver] = useState<boolean | null>(null)
@@ -118,6 +120,8 @@ export default function Einnahmen() {
 
   return (
     <div className="profil">
+      <button className="profil-back" onClick={() => navigate('/profil')}>← Profil</button>
+
       <section className="profil-hero ein-hero">
         <div className="profil-hero__inner">
           <div className="ein-hero__icon">€</div>

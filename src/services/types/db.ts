@@ -6,9 +6,17 @@ export type UserProfile = {
   user_id: string
   first_name: string | null
   family_name: string | null
-  role: 'customer' | 'driver'
+  role: 'customer' | 'driver' | 'admin'
   currently_working: boolean
   created_at: string
+  email?: string | null
+  last_ride_at?: string | null
+}
+
+export type AdminStats = {
+  rides_today: number
+  active_drivers: number
+  avg_duration_minutes: number
 }
 
 export type UserProfileBasic = {
@@ -82,4 +90,11 @@ export interface DbService {
   confirmPickupByDriver(rideId: string, code: string): Promise<boolean>
   completeRide(rideId: string, location: string): Promise<void>
   getPublicStats(): Promise<{ total_users: number; completed_rides: number; total_distance_km: number } | null>
+
+  // admin
+  getAdminStats(): Promise<AdminStats | null>
+  getAllRides(): Promise<Ride[]>
+  getAllDrivers(): Promise<UserProfile[]>
+  getAdminDriverRides(driverId: string): Promise<Ride[]>
+  setDriverWorking(userId: string, working: boolean): Promise<{ error: ServiceError | null }>
 }

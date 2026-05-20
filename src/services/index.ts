@@ -1,6 +1,6 @@
 // Re-export all service types so consumers import from one place
 export type { AuthService, AuthUser, AuthSession, UserRole } from './types/auth'
-export type { DbService, UserProfile, UserProfileBasic, GuestRequestRow, ReportRow, ServiceError } from './types/db'
+export type { DbService, UserProfile, UserProfileBasic, GuestRequestRow, ReportRow, ServiceError, AdminStats } from './types/db'
 export type { FunctionsService } from './types/functions'
 export type { RealtimeService, PresenceService, DriverLocationPayload, LocationBroadcast } from './types/realtime'
 

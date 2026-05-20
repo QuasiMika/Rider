@@ -55,6 +55,21 @@ export const supabaseRealtimeService: RealtimeService = {
     return () => { supabase.removeChannel(channel) }
   },
 
+  subscribeDriverWorking(userId, onUpdate) {
+    const channel = supabase
+      .channel(`profile-working:${userId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'user_profile', filter: `user_id=eq.${userId}` },
+        (payload) => {
+          const working = (payload.new as { currently_working?: boolean }).currently_working
+          if (typeof working === 'boolean') onUpdate(working)
+        },
+      )
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  },
+
   subscribeDriverLocation(rideId, onLocation) {
     const channel = supabase
       .channel(`ride-location:${rideId}`)
