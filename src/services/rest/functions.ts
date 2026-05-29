@@ -3,11 +3,11 @@ import type { FunctionsService, CreateRequestResult } from '../types/functions'
 import type { AcceptResult } from '../../types/ride'
 
 export const restFunctionsService: FunctionsService = {
-  async invokeCreateRequest(pickupLocation, destination) {
+  async invokeCreateRequest(pickupLocation, destination, passengerCount) {
     try {
       return await apiFetch<CreateRequestResult>('/guest-requests', {
         method: 'POST',
-        body: JSON.stringify({ pickupLocation, destination }),
+        body: JSON.stringify({ pickupLocation, destination, passengerCount }),
       })
     } catch {
       return { id: '', price_eur: null }

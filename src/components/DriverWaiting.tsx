@@ -4,11 +4,15 @@ import type { RequestWithProfile } from '../hooks/useDriverRequests'
 type RequestItemProps = {
   req: RequestWithProfile
   isAccepting: boolean
+  driverPriceMultiplier: number
   onAccept: (id: string) => void
 }
 
-function RequestItem({ req, isAccepting, onAccept }: RequestItemProps) {
+function RequestItem({ req, isAccepting, driverPriceMultiplier, onAccept }: RequestItemProps) {
   const { pickupName, destName } = useResolvedNames(undefined, req.pickupLocation, req.destination)
+  const displayedPrice = req.price_eur == null
+    ? null
+    : (req.price_eur / (req.rickshaw_price_multiplier || 1)) * driverPriceMultiplier
 
   return (
     <div className="rm-request-item">
@@ -32,11 +36,14 @@ function RequestItem({ req, isAccepting, onAccept }: RequestItemProps) {
             )}
           </div>
         )}
-        {req.price_eur != null && (
+        {displayedPrice != null && (
           <div className="rm-request-item__price">
-            {req.price_eur.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
+            {displayedPrice.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
           </div>
         )}
+        <div className="rm-request-item__passengers">
+          {req.passenger_count} {req.passenger_count === 1 ? 'Person' : 'Personen'}
+        </div>
       </div>
       <button
         className="rm-btn rm-btn--accept"
@@ -54,12 +61,62 @@ type Props = {
   isAccepting: boolean
   error: string | null
   onAccept: (id: string) => void
+  minPassengers: number
+  maxPassengers: number
+  capacity: number
+  driverPriceMultiplier: number
+  onPassengerRangeChange: (min: number, max: number) => void
 }
 
-export function DriverWaiting({ requests, isAccepting, error, onAccept }: Props) {
+export function DriverWaiting({
+  requests,
+  isAccepting,
+  error,
+  onAccept,
+  minPassengers,
+  maxPassengers,
+  capacity,
+  driverPriceMultiplier,
+  onPassengerRangeChange,
+}: Props) {
+  const passengerOptions = Array.from({ length: capacity }, (_, index) => index + 1)
+
   return (
     <div className="driver-idle">
       {error && <p className="ride-error">{error}</p>}
+
+      <div className="driver-filter">
+        <div>
+          <div className="driver-filter__label">Aufträge für</div>
+          <div className="driver-filter__value">{minPassengers} bis {maxPassengers} Personen</div>
+        </div>
+        <div className="driver-filter__controls">
+          <select
+            className="driver-filter__select"
+            value={minPassengers}
+            onChange={e => {
+              const nextMin = Number(e.target.value)
+              onPassengerRangeChange(nextMin, Math.max(nextMin, maxPassengers))
+            }}
+          >
+            {passengerOptions.map(count => (
+              <option key={count} value={count}>ab {count}</option>
+            ))}
+          </select>
+          <select
+            className="driver-filter__select"
+            value={maxPassengers}
+            onChange={e => {
+              const nextMax = Number(e.target.value)
+              onPassengerRangeChange(Math.min(minPassengers, nextMax), nextMax)
+            }}
+          >
+            {passengerOptions.map(count => (
+              <option key={count} value={count}>bis {count}</option>
+            ))}
+          </select>
+        </div>
+      </div>
 
       {requests.length === 0 ? (
         <div className="driver-idle__empty">
@@ -79,7 +136,13 @@ export function DriverWaiting({ requests, isAccepting, error, onAccept }: Props)
           </div>
           <div className="rm-requests-list">
             {requests.map(req => (
-              <RequestItem key={req.id} req={req} isAccepting={isAccepting} onAccept={onAccept} />
+              <RequestItem
+                key={req.id}
+                req={req}
+                isAccepting={isAccepting}
+                driverPriceMultiplier={driverPriceMultiplier}
+                onAccept={onAccept}
+              />
             ))}
           </div>
         </>

@@ -8,6 +8,7 @@ export type UserProfile = {
   family_name: string | null
   role: 'customer' | 'driver' | 'admin'
   currently_working: boolean
+  rickshaw_type_id: string | null
   created_at: string
   email?: string | null
   last_ride_at?: string | null
@@ -32,6 +33,18 @@ export type GuestRequestRow = {
   pickup_location: string | null
   destination: string | null
   price_eur: number | null
+  passenger_count: number
+  rickshaw_type_id: string | null
+  rickshaw_price_multiplier: number
+}
+
+export type RickshawType = {
+  id: string
+  name: string
+  capacity: number
+  price_multiplier: number
+  is_active?: boolean
+  created_at?: string
 }
 
 export type ReportRow = {
@@ -44,6 +57,10 @@ export interface DbService {
   // user_profile
   getUserProfile(userId: string): Promise<{ data: UserProfile | null; error: ServiceError | null }>
   getUserProfiles(userIds: string[]): Promise<UserProfileBasic[]>
+  updateDriverRickshawType(userId: string, rickshawTypeId: string): Promise<{ error: ServiceError | null }>
+
+  // rickshaw_types
+  getRickshawTypes(): Promise<RickshawType[]>
 
   // rides
   getActiveRide(userId: string, field: 'driver_id' | 'guest_id'): Promise<Ride | null>
@@ -57,6 +74,7 @@ export interface DbService {
     guestId: string,
     pickupLocation: string,
     destination: string,
+    passengerCount: number,
   ): Promise<{ error: ServiceError | null }>
   deleteWaitingGuestRequest(guestId: string): Promise<{ error: ServiceError | null }>
 

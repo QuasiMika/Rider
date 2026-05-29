@@ -10,10 +10,11 @@ export type FareEstimate = {
 export async function estimateFare(
   pickup: LatLng,
   dest: LatLng,
+  multiplier = 1,
   signal?: AbortSignal
 ): Promise<FareEstimate | null> {
   const route = await router.getRoute(pickup, dest, signal)
   if (!route) return null
   const distanceKm = route.distanceMeters / 1000
-  return { distanceKm, durationSeconds: route.durationSeconds, price: distanceKm * 2 }
+  return { distanceKm, durationSeconds: route.durationSeconds, price: distanceKm * 2 * multiplier }
 }

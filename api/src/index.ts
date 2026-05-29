@@ -27,6 +27,16 @@ app.use('/reports', reportsRouter)
 app.use('/stats', statsRouter)
 app.use('/checkout', checkoutRouter)
 
+app.get('/rickshaw-types', async (_req, res) => {
+  const { rows } = await pool.query(
+    `SELECT id, name, capacity, price_multiplier, is_active, created_at
+       FROM rickshaw_types
+      WHERE is_active = true
+      ORDER BY capacity ASC, name ASC`,
+  )
+  res.json(rows)
+})
+
 app.get('/health', (_req, res) => res.json({ ok: true }))
 
 app.use((_req, res) => res.status(404).json({ message: 'Not found' }))

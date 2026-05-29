@@ -3,6 +3,8 @@ import { geocode } from '../utils/geocoding'
 import { reverseGeocoder } from '../utils/reverseGeocoding'
 import { estimateFare, type FareEstimate } from '../utils/fareEstimate'
 import { formatDuration, formatDistance } from '../utils/routing'
+import { dbService, realtimeService } from '../services'
+import type { RickshawType } from '../services'
 
 const LANDMARKS: { label: string; icon: string; coords: [number, number] }[] = [
   { label: 'Bahnhof',   icon: '🚉', coords: [47.6605, 9.1751] },
@@ -13,11 +15,18 @@ const LANDMARKS: { label: string; icon: string; coords: [number, number] }[] = [
   { label: 'Imperia',   icon: '🗿', coords: [47.6598, 9.1768] },
 ]
 
+const FALLBACK_RICKSHAW_TYPES: RickshawType[] = [1, 2, 3, 4].map(count => ({
+  id: String(count),
+  name: `${count}-Personen-Rikscha`,
+  capacity: count,
+  price_multiplier: count,
+}))
+
 type Props = {
   onlineDrivers: number | null
   isLoading: boolean
   error: string | null
-  onRequest: (pickup: string, destination: string) => Promise<void>
+  onRequest: (pickup: string, destination: string, passengerCount: number) => Promise<void>
 }
 
 export function GuestBooking({ onlineDrivers, isLoading, error, onRequest }: Props) {
@@ -28,21 +37,37 @@ export function GuestBooking({ onlineDrivers, isLoading, error, onRequest }: Pro
   const [locateError, setLocateError] = useState<string | null>(null)
   const [geocodeError, setGeocodeError] = useState<string | null>(null)
   const [geocoding, setGeocoding] = useState(false)
+  const [passengerCount, setPassengerCount] = useState(1)
+  const [rickshawTypes, setRickshawTypes] = useState<RickshawType[]>([])
 
   const [estimatePickup, setEstimatePickup] = useState<[number, number] | null>(null)
   const [estimateDest, setEstimateDest] = useState<[number, number] | null>(null)
   const [fareResult, setFareResult] = useState<FareEstimate | null>(null)
   const [fareLoading, setFareLoading] = useState(false)
 
+  const availableTypes = rickshawTypes.length > 0 ? rickshawTypes : FALLBACK_RICKSHAW_TYPES
+  const selectedType = availableTypes.find(type => type.capacity >= passengerCount) ?? availableTypes[availableTypes.length - 1]
+  const maxPassengers = Math.max(...availableTypes.map(type => type.capacity))
+
+  useEffect(() => {
+    const loadTypes = () => {
+      dbService.getRickshawTypes().then(types => {
+        if (types.length > 0) setRickshawTypes(types)
+      })
+    }
+    loadTypes()
+    return realtimeService.subscribeRickshawTypes(loadTypes)
+  }, [])
+
   useEffect(() => {
     if (!estimatePickup || !estimateDest) { setFareResult(null); setFareLoading(false); return }
     setFareLoading(true)
     const controller = new AbortController()
-    estimateFare(estimatePickup, estimateDest, controller.signal).then(result => {
+    estimateFare(estimatePickup, estimateDest, selectedType.price_multiplier, controller.signal).then(result => {
       if (!controller.signal.aborted) { setFareResult(result); setFareLoading(false) }
     })
     return () => controller.abort()
-  }, [estimatePickup, estimateDest])
+  }, [estimatePickup, estimateDest, selectedType.price_multiplier])
 
   const useCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -102,7 +127,7 @@ export function GuestBooking({ onlineDrivers, isLoading, error, onRequest }: Pro
     const ll = estimateDest ?? await geocode(destDisplay.trim())
     if (!ll) { setGeocodeError('Ziel konnte nicht gefunden werden.'); setGeocoding(false); return }
     setGeocoding(false)
-    await onRequest(pickup, `${ll[0]}, ${ll[1]}`)
+    await onRequest(pickup, `${ll[0]}, ${ll[1]}`, passengerCount)
   }
 
   return (
@@ -162,6 +187,23 @@ export function GuestBooking({ onlineDrivers, isLoading, error, onRequest }: Pro
             {lm.label}
           </button>
         ))}
+      </div>
+
+      <div className="guest-passengers" role="group" aria-label="Personenanzahl">
+        <span className="guest-passengers__label">Personen</span>
+        <div className="guest-passengers__options">
+          {Array.from({ length: maxPassengers }, (_, index) => index + 1).map(count => (
+            <button
+              key={count}
+              type="button"
+              className={`guest-passengers__option${passengerCount === count ? ' guest-passengers__option--active' : ''}`}
+              onClick={() => setPassengerCount(count)}
+            >
+              {count}
+            </button>
+          ))}
+        </div>
+        <span className="guest-passengers__type">{selectedType.name}</span>
       </div>
 
       {locateError && <p className="ride-error guest-idle__error">{locateError}</p>}

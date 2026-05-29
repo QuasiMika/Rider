@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../auth/AuthUser'
+import { dbService, realtimeService } from '../services'
+import type { RickshawType } from '../services'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faEnvelope,
@@ -32,6 +34,8 @@ export default function AuthPage({ initialMode = 'login' }: Props) {
   const [firstName, setFirstName] = useState('')
   const [familyName, setFamilyName] = useState('')
   const [role, setRole] = useState<Role>('customer')
+  const [rickshawTypeId, setRickshawTypeId] = useState<string | null>(null)
+  const [rickshawTypes, setRickshawTypes] = useState<RickshawType[]>([])
 
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -40,6 +44,17 @@ export default function AuthPage({ initialMode = 'login' }: Props) {
     if (user) navigate(from, { replace: true })
   }, [user, navigate, from])
 
+  useEffect(() => {
+    const loadTypes = () => {
+      dbService.getRickshawTypes().then(types => {
+        setRickshawTypes(types)
+        setRickshawTypeId(current => current ?? types[types.length - 1]?.id ?? null)
+      })
+    }
+    loadTypes()
+    return realtimeService.subscribeRickshawTypes(loadTypes)
+  }, [])
+
   // reset form + error when switching mode
   const switchMode = (next: Mode) => {
     setError(null)
@@ -47,6 +62,7 @@ export default function AuthPage({ initialMode = 'login' }: Props) {
     setPassword('')
     setFirstName('')
     setFamilyName('')
+    setRole('customer')
     setMode(next)
   }
 
@@ -64,7 +80,12 @@ export default function AuthPage({ initialMode = 'login' }: Props) {
         setLoading(false)
         return
       }
-      const { error } = await signUp(email, password, firstName, familyName, role)
+      if (role === 'driver' && !rickshawTypeId) {
+        setError('Bitte wähle einen Rikschatyp aus.')
+        setLoading(false)
+        return
+      }
+      const { error } = await signUp(email, password, firstName, familyName, role, rickshawTypeId)
       if (error) { setError(error); setLoading(false) }
     }
   }
@@ -173,6 +194,24 @@ export default function AuthPage({ initialMode = 'login' }: Props) {
                     </label>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {mode === 'register' && role === 'driver' && (
+              <div className="login__field">
+                <label className="login__label">Rikschatyp</label>
+                <select
+                  className="login__input login__select"
+                  value={rickshawTypeId ?? ''}
+                  onChange={e => setRickshawTypeId(e.target.value)}
+                  required
+                >
+                  {rickshawTypes.map(type => (
+                    <option key={type.id} value={type.id}>
+                      {type.name} · bis {type.capacity} Personen · Faktor {type.price_multiplier}
+                    </option>
+                  ))}
+                </select>
               </div>
             )}
 

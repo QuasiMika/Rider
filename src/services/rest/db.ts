@@ -1,5 +1,5 @@
 import { apiFetch } from './client'
-import type { DbService, UserProfile, UserProfileBasic, GuestRequestRow, ReportRow, ServiceError } from '../types/db'
+import type { DbService, UserProfile, UserProfileBasic, GuestRequestRow, ReportRow, ServiceError, RickshawType } from '../types/db'
 import type { Ride } from '../../types/ride'
 
 function toError(e: unknown): ServiceError {
@@ -20,6 +20,26 @@ export const restDbService: DbService = {
     if (!userIds.length) return []
     try {
       return await apiFetch<UserProfileBasic[]>(`/users?ids=${userIds.join(',')}`)
+    } catch {
+      return []
+    }
+  },
+
+  async updateDriverRickshawType(userId, rickshawTypeId) {
+    try {
+      await apiFetch(`/users/${userId}/rickshaw-type`, {
+        method: 'PATCH',
+        body: JSON.stringify({ rickshawTypeId }),
+      })
+      return { error: null }
+    } catch (e) {
+      return { error: toError(e) }
+    }
+  },
+
+  async getRickshawTypes() {
+    try {
+      return await apiFetch<RickshawType[]>('/rickshaw-types')
     } catch {
       return []
     }
@@ -67,11 +87,11 @@ export const restDbService: DbService = {
     }
   },
 
-  async insertGuestRequest(_guestId, pickupLocation, destination) {
+  async insertGuestRequest(_guestId, pickupLocation, destination, passengerCount) {
     try {
       await apiFetch('/guest-requests', {
         method: 'POST',
-        body: JSON.stringify({ pickupLocation, destination }),
+        body: JSON.stringify({ pickupLocation, destination, passengerCount }),
       })
       return { error: null }
     } catch (e) {

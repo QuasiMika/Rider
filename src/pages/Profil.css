@@ -160,6 +160,29 @@
   word-break: break-word;
 }
 
+.profil-select {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-h);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+  outline: none;
+}
+.profil-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}
+.profil-card__hint {
+  margin-top: 0.5rem;
+  font-size: 12px;
+  color: var(--text);
+}
+
 .profil-card--cta {
   cursor: pointer;
   border-color: var(--accent-border);

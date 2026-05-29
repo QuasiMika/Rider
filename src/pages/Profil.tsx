@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthUser'
 import { useRideMatching } from '../hooks/useRideMatching'
-import { dbService } from '../services'
-import type { UserProfile } from '../services'
+import { dbService, realtimeService } from '../services'
+import type { UserProfile, RickshawType } from '../services'
 import type { Ride } from '../types/ride'
 import { RideTile } from '../components/rides/RideTile'
 import { RideDetailDialog, StarDisplay } from '../components/rides/RideDetailDialog'
@@ -67,6 +67,9 @@ export default function Profil() {
   const [error, setError] = useState<string | null>(null)
   const [completedRides, setCompletedRides] = useState<Ride[]>([])
   const [reviewStats, setReviewStats] = useState<{ avg: number; count: number } | null>(null)
+  const [rickshawTypes, setRickshawTypes] = useState<RickshawType[]>([])
+  const [savingRickshaw, setSavingRickshaw] = useState(false)
+  const [rickshawMessage, setRickshawMessage] = useState<string | null>(null)
 
   const selectedRideId = searchParams.get('ride')
   const selectedRide = completedRides.find(r => r.id === selectedRideId) ?? null
@@ -96,6 +99,12 @@ export default function Profil() {
   }, [user])
 
   useEffect(() => {
+    const loadTypes = () => dbService.getRickshawTypes().then(setRickshawTypes)
+    loadTypes()
+    return realtimeService.subscribeRickshawTypes(loadTypes)
+  }, [])
+
+  useEffect(() => {
     if (!user || !profile) return
     const col = profile.role === 'driver' ? 'driver_id' : 'guest_id'
     dbService.getCompletedRides(user.id, col).then(data => setCompletedRides(data))
@@ -110,6 +119,21 @@ export default function Profil() {
     : '–'
 
   const userRole = profile?.role === 'driver' ? 'driver' : 'guest'
+  const selectedRickshaw = rickshawTypes.find(type => type.id === profile?.rickshaw_type_id) ?? null
+
+  const handleRickshawChange = async (rickshawTypeId: string) => {
+    if (!user || !profile) return
+    setSavingRickshaw(true)
+    setRickshawMessage(null)
+    const { error: updateError } = await dbService.updateDriverRickshawType(user.id, rickshawTypeId)
+    if (updateError) {
+      setRickshawMessage(updateError.message)
+    } else {
+      setProfile({ ...profile, rickshaw_type_id: rickshawTypeId })
+      setRickshawMessage('Gespeichert')
+    }
+    setSavingRickshaw(false)
+  }
 
   return (
     <div className="profil">
@@ -129,6 +153,11 @@ export default function Profil() {
                   {profile.role === 'driver' && (
                     <span className={`profil-badge profil-badge--status ${profile.currently_working ? 'profil-badge--active' : ''}`}>
                       {profile.currently_working ? '● Aktiv' : '○ Inaktiv'}
+                    </span>
+                  )}
+                  {profile.role === 'driver' && selectedRickshaw && (
+                    <span className="profil-badge">
+                      {selectedRickshaw.name}
                     </span>
                   )}
                 </div>
@@ -154,6 +183,25 @@ export default function Profil() {
                 <div className="profil-card__value">
                   {profile.currently_working ? 'Aktiv' : 'Inaktiv'}
                 </div>
+              </div>
+            )}
+
+            {profile.role === 'driver' && (
+              <div className="profil-card">
+                <div className="profil-card__label">Rikschatyp</div>
+                <select
+                  className="profil-select"
+                  value={profile.rickshaw_type_id ?? ''}
+                  onChange={e => handleRickshawChange(e.target.value)}
+                  disabled={savingRickshaw || rickshawTypes.length === 0}
+                >
+                  {rickshawTypes.map(type => (
+                    <option key={type.id} value={type.id}>
+                      {type.name} · {type.capacity} Personen · Faktor {type.price_multiplier}
+                    </option>
+                  ))}
+                </select>
+                {rickshawMessage && <div className="profil-card__hint">{rickshawMessage}</div>}
               </div>
             )}
 

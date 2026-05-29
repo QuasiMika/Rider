@@ -22,6 +22,7 @@ export interface AuthService {
     firstName: string,
     familyName: string,
     role: UserRole,
+    rickshawTypeId?: string | null,
   ): Promise<{ error: string | null }>
   signOut(): Promise<void>
 }

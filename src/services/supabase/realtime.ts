@@ -70,6 +70,18 @@ export const supabaseRealtimeService: RealtimeService = {
     return () => { supabase.removeChannel(channel) }
   },
 
+  subscribeRickshawTypes(onChange) {
+    const channel = supabase
+      .channel('rickshaw-types')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'rickshaw_types' },
+        () => onChange(),
+      )
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  },
+
   subscribeDriverLocation(rideId, onLocation) {
     const channel = supabase
       .channel(`ride-location:${rideId}`)

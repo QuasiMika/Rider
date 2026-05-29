@@ -10,6 +10,8 @@ export type RequestWithProfile = {
   pickupLocation: string
   destination: string
   price_eur: number | null
+  passenger_count: number
+  rickshaw_price_multiplier: number
   guestName: string
   guestInitials: string
 }
@@ -40,12 +42,14 @@ async function enrichRow(row: GuestRequestRow): Promise<RequestWithProfile> {
     pickupLocation: row.pickup_location ?? '',
     destination: row.destination ?? '',
     price_eur: row.price_eur,
+    passenger_count: row.passenger_count ?? 1,
+    rickshaw_price_multiplier: row.rickshaw_price_multiplier ?? 1,
     guestName: fullName || 'Gast',
     guestInitials: initials,
   }
 }
 
-export function useDriverRequests(driverId: string): UseDriverRequestsResult {
+export function useDriverRequests(driverId: string, minPassengers = 1, maxPassengers = Number.MAX_SAFE_INTEGER): UseDriverRequestsResult {
   const [requests, setRequests] = useState<RequestWithProfile[]>([])
   const [currentRide, setCurrentRide] = useState<Ride | null>(null)
   const [status, setStatus] = useState<DriverStatus>('browsing')
@@ -64,7 +68,8 @@ export function useDriverRequests(driverId: string): UseDriverRequestsResult {
   useEffect(() => {
     if (!driverId) return
     const load = async () => {
-      const rows = await dbService.getWaitingGuestRequests()
+      const rows = (await dbService.getWaitingGuestRequests())
+        .filter(r => (r.passenger_count ?? 1) >= minPassengers && (r.passenger_count ?? 1) <= maxPassengers)
       if (rows.length === 0) { setRequests([]); return }
 
       const guestIds = rows.map(r => r.guest_id)
@@ -84,13 +89,15 @@ export function useDriverRequests(driverId: string): UseDriverRequestsResult {
           pickupLocation: r.pickup_location ?? '',
           destination: r.destination ?? '',
           price_eur: r.price_eur,
+          passenger_count: r.passenger_count ?? 1,
+          rickshaw_price_multiplier: r.rickshaw_price_multiplier ?? 1,
           guestName: fullName || 'Gast',
           guestInitials: initials,
         }
       }))
     }
     load()
-  }, [driverId])
+  }, [driverId, minPassengers, maxPassengers])
 
   // Realtime: guest_requests INSERT / DELETE
   useEffect(() => {
@@ -98,12 +105,14 @@ export function useDriverRequests(driverId: string): UseDriverRequestsResult {
     return realtimeService.subscribeGuestRequests(
       `guest-requests-driver-${driverId}`,
       async (row) => {
+        const passengerCount = row.passenger_count ?? 1
+        if (passengerCount < minPassengers || passengerCount > maxPassengers) return
         const enriched = await enrichRow(row)
         setRequests(prev => [...prev, enriched])
       },
       (deletedId) => setRequests(prev => prev.filter(r => r.id !== deletedId)),
     )
-  }, [driverId])
+  }, [driverId, minPassengers, maxPassengers])
 
   // Realtime: rides INSERT/UPDATE for this driver
   useEffect(() => {
@@ -128,8 +137,12 @@ export function useDriverRequests(driverId: string): UseDriverRequestsResult {
         const ride = await dbService.getRideById(result.ride_id)
         if (ride) { setCurrentRide(ride); setStatus('matched') }
       } else if (!result.accepted) {
-        setError('Diese Anfrage wurde bereits von einem anderen Fahrer angenommen.')
-        setRequests(prev => prev.filter(r => r.id !== requestId))
+        setError(result.reason === 'capacity_too_small'
+          ? 'Diese Anfrage ist größer als deine aktuelle Rikscha-Kapazität.'
+          : 'Diese Anfrage wurde bereits von einem anderen Fahrer angenommen.')
+        if (result.reason !== 'capacity_too_small') {
+          setRequests(prev => prev.filter(r => r.id !== requestId))
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unbekannter Fehler')

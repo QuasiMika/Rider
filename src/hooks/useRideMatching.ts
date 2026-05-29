@@ -6,7 +6,7 @@ type Status = 'idle' | 'waiting' | 'matched' | 'completed' | 'error'
 
 type UseRideMatchingResult = {
   submitAvailability: () => Promise<void>
-  requestRide: (pickupLocation: string, destination: string) => Promise<void>
+  requestRide: (pickupLocation: string, destination: string, passengerCount: number) => Promise<void>
   cancelRequest: () => Promise<void>
   confirmPickup: () => Promise<void>
   resetToIdle: () => void
@@ -109,14 +109,14 @@ export function useRideMatching(userId: string, role: 'driver' | 'guest'): UseRi
     }
   }
 
-  const requestRide = async (pickupLocation: string, destination: string) => {
+  const requestRide = async (pickupLocation: string, destination: string, passengerCount: number) => {
     if (!userId) return
     setIsLoading(true); setError(null); setStatus('waiting')
 
     try {
       const existing = await dbService.getWaitingGuestRequest(userId)
       if (!existing) {
-        await functionsService.invokeCreateRequest(pickupLocation, destination)
+        await functionsService.invokeCreateRequest(pickupLocation, destination, passengerCount)
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unbekannter Fehler')

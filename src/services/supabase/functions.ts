@@ -8,10 +8,10 @@ async function getAccessToken(): Promise<string | undefined> {
 }
 
 export const supabaseFunctionsService: FunctionsService = {
-  async invokeCreateRequest(pickupLocation, destination) {
+  async invokeCreateRequest(pickupLocation, destination, passengerCount) {
     const token = await getAccessToken()
     const { data, error } = await supabase.functions.invoke<CreateRequestResult>('create-request', {
-      body: { pickupLocation, destination },
+      body: { pickupLocation, destination, passengerCount },
       headers: { Authorization: `Bearer ${token}` },
     })
     if (error) throw new Error(error.message)

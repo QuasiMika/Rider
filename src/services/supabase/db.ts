@@ -1,5 +1,5 @@
 import { supabase } from './client'
-import type { DbService, UserProfile, UserProfileBasic, GuestRequestRow, ReportRow, ServiceError } from '../types/db'
+import type { DbService, UserProfile, UserProfileBasic, GuestRequestRow, ReportRow, ServiceError, RickshawType } from '../types/db'
 import type { Ride } from '../../types/ride'
 
 function toError(e: unknown): ServiceError {
@@ -10,7 +10,7 @@ export const supabaseDbService: DbService = {
   async getUserProfile(userId) {
     const { data, error } = await supabase
       .from('user_profile')
-      .select('user_id, first_name, family_name, role, currently_working, created_at')
+      .select('user_id, first_name, family_name, role, currently_working, rickshaw_type_id, created_at')
       .eq('user_id', userId)
       .single()
     return {
@@ -25,6 +25,20 @@ export const supabaseDbService: DbService = {
       .select('user_id, first_name, family_name')
       .in('user_id', userIds)
     return (data ?? []) as UserProfileBasic[]
+  },
+
+  async updateDriverRickshawType(userId, rickshawTypeId) {
+    const { error } = await supabase
+      .from('user_profile')
+      .update({ rickshaw_type_id: rickshawTypeId })
+      .eq('user_id', userId)
+      .eq('role', 'driver')
+    return { error: error ? { message: error.message } : null }
+  },
+
+  async getRickshawTypes() {
+    const { data } = await supabase.rpc('get_rickshaw_types')
+    return (data ?? []) as RickshawType[]
   },
 
   async getActiveRide(userId, field) {
@@ -45,7 +59,7 @@ export const supabaseDbService: DbService = {
   async getCompletedRides(userId, field) {
     const { data } = await supabase
       .from('rides')
-      .select('id, driver_id, guest_id, status, pickup_location, destination, actual_end_location, price_eur, created_at')
+      .select('id, driver_id, guest_id, status, pickup_location, destination, actual_end_location, price_eur, passenger_count, rickshaw_type_id, rickshaw_price_multiplier, created_at, completed_at')
       .eq(field, userId)
       .eq('status', 'completed')
       .order('created_at', { ascending: false })
@@ -65,17 +79,17 @@ export const supabaseDbService: DbService = {
   async getWaitingGuestRequests() {
     const { data } = await supabase
       .from('guest_requests')
-      .select('id, guest_id, created_at, pickup_location, destination, price_eur')
+      .select('id, guest_id, created_at, pickup_location, destination, price_eur, passenger_count, rickshaw_type_id, rickshaw_price_multiplier')
       .eq('status', 'waiting')
       .order('created_at', { ascending: true })
     return (data ?? []) as GuestRequestRow[]
   },
 
-  async insertGuestRequest(guestId, pickupLocation, destination) {
+  async insertGuestRequest(guestId, pickupLocation, destination, passengerCount) {
     const pickup_code = String(Math.floor(Math.random() * 10000)).padStart(4, '0')
     const { error } = await supabase
       .from('guest_requests')
-      .insert({ guest_id: guestId, status: 'waiting', pickup_location: pickupLocation, destination, pickup_code })
+      .insert({ guest_id: guestId, status: 'waiting', pickup_location: pickupLocation, destination, passenger_count: passengerCount, pickup_code })
     return { error: error ? { message: error.message } : null }
   },
 

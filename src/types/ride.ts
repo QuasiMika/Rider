@@ -14,6 +14,9 @@ export type GuestRequest = {
   pickup_location?: string
   destination?: string
   price_eur?: number | null
+  passenger_count?: number
+  rickshaw_type_id?: string | null
+  rickshaw_price_multiplier?: number
   ride_id?: string
   created_at: string
 }
@@ -27,6 +30,9 @@ export type Ride = {
   destination?: string
   actual_end_location?: string
   price_eur?: number | null
+  passenger_count?: number
+  rickshaw_type_id?: string | null
+  rickshaw_price_multiplier?: number
   pickup_code?: string | null
   created_at: string
   completed_at?: string | null

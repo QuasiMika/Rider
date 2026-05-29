@@ -27,11 +27,18 @@ export const supabaseAuthService: AuthService = {
     return { error: error?.message ?? null }
   },
 
-  async signUp(email, password, firstName, familyName, role: UserRole) {
+  async signUp(email, password, firstName, familyName, role: UserRole, rickshawTypeId?: string | null) {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { first_name: firstName, family_name: familyName, role } },
+      options: {
+        data: {
+          first_name: firstName,
+          family_name: familyName,
+          role,
+          ...(role === 'driver' && rickshawTypeId ? { rickshaw_type_id: rickshawTypeId } : {}),
+        },
+      },
     })
     return { error: error?.message ?? null }
   },

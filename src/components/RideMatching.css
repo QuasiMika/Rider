@@ -395,6 +395,19 @@
   letter-spacing: 0.01em;
 }
 
+.rm-request-item__passengers {
+  display: inline-block;
+  margin-top: 7px;
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+}
+
 /* ─── Request list (driver browsing) ─────────────────────── */
 .rm-requests-header {
   width: 100%;
@@ -765,6 +778,56 @@
   flex-direction: column;
   align-items: center;
   gap: 1.5rem;
+}
+
+.driver-filter {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 0.9rem 1rem;
+  box-sizing: border-box;
+}
+
+.driver-filter__label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text);
+}
+
+.driver-filter__value {
+  margin-top: 2px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.driver-filter__controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.driver-filter__select {
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-h);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 0.5rem 0.65rem;
+  outline: none;
+}
+
+.driver-filter__select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-bg);
 }
 
 .driver-idle__empty {

@@ -45,6 +45,10 @@ export interface RealtimeService {
     onUpdate: (working: boolean) => void,
   ): () => void
 
+  subscribeRickshawTypes(
+    onChange: () => void,
+  ): () => void
+
   createLocationBroadcast(rideId: string): LocationBroadcast
 }
 

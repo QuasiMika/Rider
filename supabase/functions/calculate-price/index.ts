@@ -33,7 +33,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     const { data: ride, error: rideError } = await supabase
       .from('rides')
-      .select('id, driver_id, guest_id, pickup_location, destination')
+      .select('id, driver_id, guest_id, pickup_location, destination, rickshaw_price_multiplier')
       .eq('id', ride_id)
       .single()
 
@@ -42,8 +42,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
       return json({ error: 'Forbidden' }, 403)
     }
 
-    const price_eur = await calculatePriceEur(ride.pickup_location, ride.destination)
-    if (price_eur === null) return json({ error: 'Route coordinates missing or invalid' }, 422)
+    const basePrice = await calculatePriceEur(ride.pickup_location, ride.destination)
+    if (basePrice === null) return json({ error: 'Route coordinates missing or invalid' }, 422)
+    const price_eur = Number((basePrice * Number(ride.rickshaw_price_multiplier ?? 1)).toFixed(2))
 
     const { error: updateError } = await supabase
       .from('rides')

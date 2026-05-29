@@ -19,7 +19,7 @@ function StarDisplay({ value, count }: { value: number; count: number }) {
 
 export default function PublicProfile() {
   const { id } = useParams<{ id: string }>()
-  const [profile, setProfile] = useState<{ first_name: string | null; family_name: string | null; role: 'customer' | 'driver'; created_at: string } | null>(null)
+  const [profile, setProfile] = useState<{ first_name: string | null; family_name: string | null; role: 'customer' | 'driver' | 'admin'; created_at: string } | null>(null)
   const [reviewStats, setReviewStats] = useState<ReviewStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)

@@ -193,6 +193,9 @@
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-bg);
 }
+.login__select {
+  padding-left: 0.9rem;
+}
 .login__input-wrap:focus-within .login__input-icon {
   opacity: 0.7;
   color: var(--accent);

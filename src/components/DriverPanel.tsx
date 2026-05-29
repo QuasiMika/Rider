@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthUser'
 import { useDriverRequests } from '../hooks/useDriverRequests'
 import { presenceService, dbService, realtimeService } from '../services'
+import type { RickshawType } from '../services'
 import type { Ride } from '../types/ride'
 import { DriverWaiting } from './DriverWaiting'
 import { DriverRideActive } from './DriverRideActive'
@@ -10,12 +11,31 @@ import { DriverRideCompleted } from './DriverRideCompleted'
 
 export function DriverPanel() {
   const { user } = useAuth()
+  const [driverRickshaw, setDriverRickshaw] = useState<RickshawType | null>(null)
+  const [minPassengers, setMinPassengers] = useState(1)
+  const [maxPassengers, setMaxPassengers] = useState(4)
   const { requests, currentRide, status, isAccepting, error, acceptRequest, resetToIdle } = useDriverRequests(
-    user?.id ?? ''
+    user?.id ?? '',
+    minPassengers,
+    maxPassengers,
   )
   const [urlCompletedRide, setUrlCompletedRide] = useState<Ride | null>(null)
   const [searchParams, setSearchParams] = useSearchParams()
   const [isWorking, setIsWorking] = useState<boolean | null>(null)
+
+  const loadDriverRickshaw = async () => {
+    if (!user?.id) return
+    const [{ data: profile }, types] = await Promise.all([
+      dbService.getUserProfile(user.id),
+      dbService.getRickshawTypes(),
+    ])
+    const type = types.find(t => t.id === profile?.rickshaw_type_id) ?? null
+    setDriverRickshaw(type)
+    if (type) {
+      setMinPassengers(current => Math.min(current, type.capacity))
+      setMaxPassengers(current => current === 4 || current > type.capacity ? type.capacity : current)
+    }
+  }
 
   // Load currently_working on mount
   useEffect(() => {
@@ -23,6 +43,12 @@ export function DriverPanel() {
     dbService.getUserProfile(user.id).then(({ data }) => {
       setIsWorking(data?.currently_working ?? true)
     })
+  }, [user?.id])
+
+  useEffect(() => {
+    loadDriverRickshaw()
+    return realtimeService.subscribeRickshawTypes(loadDriverRickshaw)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id])
 
   // Subscribe to admin status changes in real-time
@@ -84,6 +110,14 @@ export function DriverPanel() {
       isAccepting={isAccepting}
       error={error}
       onAccept={acceptRequest}
+      minPassengers={minPassengers}
+      maxPassengers={maxPassengers}
+      capacity={driverRickshaw?.capacity ?? 4}
+      driverPriceMultiplier={driverRickshaw?.price_multiplier ?? 1}
+      onPassengerRangeChange={(min, max) => {
+        setMinPassengers(min)
+        setMaxPassengers(max)
+      }}
     />
   )
 }
