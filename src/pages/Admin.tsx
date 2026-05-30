@@ -2,13 +2,13 @@ import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthUser'
 import { dbService, presenceService } from '../services'
-import type { UserProfile, AdminStats } from '../services'
+import type { UserProfile, AdminStats, RickshawType } from '../services'
 import type { Ride } from '../types/ride'
 import { StarDisplay } from '../components/rides/RideDetailDialog'
 import './Admin.css'
 import './Einnahmen.css'
 
-type Tab = 'dashboard' | 'rides' | 'drivers'
+type Tab = 'dashboard' | 'rides' | 'drivers' | 'vehicles'
 
 const STATUS_LABELS: Record<string, string> = {
   pending: 'Unterwegs',
@@ -31,6 +31,10 @@ function formatDuration(minutes: number) {
 
 function formatEur(n: number) {
   return n.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })
+}
+
+function formatPricePerKm(n: number) {
+  return `${n.toFixed(2).replace('.', ',')} €/km`
 }
 
 const MONTHS_DE = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez']
@@ -663,6 +667,225 @@ function DriverList() {
   )
 }
 
+type VehicleForm = {
+  id: string | null
+  name: string
+  capacity: string
+  pricePerKm: string
+}
+
+const EMPTY_VEHICLE_FORM: VehicleForm = {
+  id: null,
+  name: '',
+  capacity: '1',
+  pricePerKm: '2.50',
+}
+
+function VehicleTypes() {
+  const [types, setTypes] = useState<RickshawType[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [message, setMessage] = useState<string | null>(null)
+  const [form, setForm] = useState<VehicleForm>(EMPTY_VEHICLE_FORM)
+
+  const loadTypes = async () => {
+    const data = await dbService.getAdminRickshawTypes()
+    setTypes(data)
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    loadTypes()
+  }, [])
+
+  const activeCount = types.filter(type => type.is_active).length
+  const isEditing = form.id !== null
+
+  const resetForm = () => {
+    setForm(EMPTY_VEHICLE_FORM)
+    setError(null)
+    setMessage(null)
+  }
+
+  const editType = (type: RickshawType) => {
+    setForm({
+      id: type.id,
+      name: type.name,
+      capacity: String(type.capacity),
+      pricePerKm: String(type.price_per_km),
+    })
+    setError(null)
+    setMessage(null)
+  }
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault()
+    setError(null)
+    setMessage(null)
+
+    const capacity = Math.floor(Number(form.capacity))
+    const pricePerKm = Number(String(form.pricePerKm).replace(',', '.'))
+    if (!form.name.trim()) { setError('Bitte einen Namen eingeben.'); return }
+    if (!Number.isFinite(capacity) || capacity < 1) { setError('Personenanzahl muss mindestens 1 sein.'); return }
+    if (!Number.isFinite(pricePerKm) || pricePerKm <= 0) { setError('Preis pro Kilometer muss größer als 0 sein.'); return }
+
+    setSaving(true)
+    const { error: saveError } = await dbService.saveRickshawType({
+      id: form.id,
+      name: form.name.trim(),
+      capacity,
+      price_per_km: pricePerKm,
+    })
+    setSaving(false)
+
+    if (saveError) {
+      setError(saveError.message)
+      return
+    }
+
+    setMessage(isEditing ? 'Fahrzeugtyp gespeichert.' : 'Fahrzeugtyp angelegt.')
+    setForm(EMPTY_VEHICLE_FORM)
+    await loadTypes()
+  }
+
+  const toggleActive = async (type: RickshawType) => {
+    setError(null)
+    setMessage(null)
+    if (type.is_active && (types.length <= 1 || activeCount <= 1)) {
+      setError('Der letzte aktive Fahrzeugtyp kann nicht deaktiviert werden.')
+      return
+    }
+
+    setSaving(true)
+    const { error: toggleError } = await dbService.setRickshawTypeActive(type.id, !type.is_active)
+    setSaving(false)
+    if (toggleError) { setError(toggleError.message); return }
+    setMessage(type.is_active ? 'Fahrzeugtyp deaktiviert. Zugeordnete Fahrer wurden umgestellt.' : 'Fahrzeugtyp aktiviert.')
+    await loadTypes()
+  }
+
+  const deleteType = async (type: RickshawType) => {
+    setError(null)
+    setMessage(null)
+    if (types.length <= 1) {
+      setError('Der letzte Fahrzeugtyp kann nicht gelöscht werden.')
+      return
+    }
+    const ok = window.confirm(`${type.name} löschen? Zugeordnete Fahrer werden vorher auf einen anderen aktiven Typ gesetzt.`)
+    if (!ok) return
+
+    setSaving(true)
+    const { error: deleteError } = await dbService.deleteRickshawType(type.id)
+    setSaving(false)
+    if (deleteError) { setError(deleteError.message); return }
+    if (form.id === type.id) setForm(EMPTY_VEHICLE_FORM)
+    setMessage('Fahrzeugtyp gelöscht. Zugeordnete Fahrer wurden umgestellt.')
+    await loadTypes()
+  }
+
+  if (loading) return <div className="admin-loading">Lade Fahrzeugtypen...</div>
+
+  return (
+    <div className="admin-vehicles">
+      <form className="admin-vehicle-form" onSubmit={handleSubmit}>
+        <div className="admin-vehicle-form__header">
+          <h2>{isEditing ? 'Fahrzeugtyp bearbeiten' : 'Neuen Fahrzeugtyp anlegen'}</h2>
+          {isEditing && (
+            <button type="button" className="admin-toggle-btn admin-toggle-btn--details" onClick={resetForm}>
+              Neu
+            </button>
+          )}
+        </div>
+        <div className="admin-vehicle-form__grid">
+          <label className="admin-vehicle-field">
+            <span>Name</span>
+            <input
+              className="admin-input"
+              value={form.name}
+              onChange={event => setForm(current => ({ ...current, name: event.target.value }))}
+              placeholder="z.B. Klein"
+            />
+          </label>
+          <label className="admin-vehicle-field">
+            <span>Personenanzahl</span>
+            <input
+              className="admin-input"
+              type="number"
+              min="1"
+              step="1"
+              value={form.capacity}
+              onChange={event => setForm(current => ({ ...current, capacity: event.target.value }))}
+            />
+          </label>
+          <label className="admin-vehicle-field">
+            <span>Preis pro Kilometer</span>
+            <input
+              className="admin-input"
+              inputMode="decimal"
+              value={form.pricePerKm}
+              onChange={event => setForm(current => ({ ...current, pricePerKm: event.target.value }))}
+              placeholder="3,00"
+            />
+          </label>
+          <button className="admin-toggle-btn admin-toggle-btn--activate" type="submit" disabled={saving}>
+            {saving ? 'Speichert...' : isEditing ? 'Speichern' : 'Anlegen'}
+          </button>
+        </div>
+        {error && <p className="admin-error admin-vehicle-form__feedback">{error}</p>}
+        {message && <p className="admin-vehicle-form__success">{message}</p>}
+      </form>
+
+      {types.length === 0 ? (
+        <p className="admin-empty">Keine Fahrzeugtypen angelegt.</p>
+      ) : (
+        <div className="admin-vehicle-list">
+          {types.map(type => {
+            const canDeactivate = !type.is_active || (types.length > 1 && activeCount > 1)
+            const canDelete = types.length > 1
+            return (
+              <div key={type.id} className={`admin-vehicle-row${!type.is_active ? ' admin-vehicle-row--inactive' : ''}`}>
+                <div className="admin-vehicle-row__main">
+                  <div className="admin-vehicle-row__title">
+                    {type.name}
+                    <span className={`admin-badge ${type.is_active ? 'admin-badge--active' : 'admin-badge--inactive'}`}>
+                      {type.is_active ? 'Aktiv' : 'Inaktiv'}
+                    </span>
+                  </div>
+                  <div className="admin-vehicle-row__meta">
+                    {type.capacity} {type.capacity === 1 ? 'Person' : 'Personen'} · {formatPricePerKm(type.price_per_km)} · {type.assigned_drivers ?? 0} Fahrer
+                  </div>
+                </div>
+                <div className="admin-vehicle-row__actions">
+                  <button className="admin-toggle-btn admin-toggle-btn--details" type="button" onClick={() => editType(type)}>
+                    Bearbeiten
+                  </button>
+                  <button
+                    className={`admin-toggle-btn ${type.is_active ? 'admin-toggle-btn--deactivate' : 'admin-toggle-btn--activate'}`}
+                    type="button"
+                    disabled={saving || !canDeactivate}
+                    onClick={() => toggleActive(type)}
+                  >
+                    {type.is_active ? 'Deaktivieren' : 'Aktivieren'}
+                  </button>
+                  <button
+                    className="admin-toggle-btn admin-toggle-btn--danger"
+                    type="button"
+                    disabled={saving || !canDelete}
+                    onClick={() => deleteType(type)}
+                  >
+                    Löschen
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function Admin() {
   const [tab, setTab] = useState<Tab>('dashboard')
 
@@ -693,12 +916,19 @@ export default function Admin() {
           >
             Fahrer
           </button>
+          <button
+            className={`admin-tab${tab === 'vehicles' ? ' admin-tab--active' : ''}`}
+            onClick={() => setTab('vehicles')}
+          >
+            Fahrzeugtypen
+          </button>
         </div>
 
         <div className="admin-content">
           {tab === 'dashboard' && <Dashboard />}
           {tab === 'rides' && <RideList />}
           {tab === 'drivers' && <DriverList />}
+          {tab === 'vehicles' && <VehicleTypes />}
         </div>
       </div>
     </AdminRoute>

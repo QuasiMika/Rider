@@ -15,18 +15,17 @@ const LANDMARKS: { label: string; icon: string; coords: [number, number] }[] = [
   { label: 'Imperia',   icon: '🗿', coords: [47.6598, 9.1768] },
 ]
 
-const FALLBACK_RICKSHAW_TYPES: RickshawType[] = [1, 2, 3, 4].map(count => ({
-  id: String(count),
-  name: `${count}-Personen-Rikscha`,
-  capacity: count,
-  price_multiplier: count,
-}))
+const FALLBACK_RICKSHAW_TYPES: RickshawType[] = [
+  { id: 'fallback-small', name: 'Klein', capacity: 1, price_per_km: 2.5 },
+  { id: 'fallback-standard', name: 'Standard', capacity: 2, price_per_km: 3 },
+  { id: 'fallback-large', name: 'Groß', capacity: 4, price_per_km: 4 },
+]
 
 type Props = {
   onlineDrivers: number | null
   isLoading: boolean
   error: string | null
-  onRequest: (pickup: string, destination: string, passengerCount: number) => Promise<void>
+  onRequest: (pickup: string, destination: string, passengerCount: number, rickshawTypeId?: string | null) => Promise<void>
 }
 
 export function GuestBooking({ onlineDrivers, isLoading, error, onRequest }: Props) {
@@ -39,6 +38,7 @@ export function GuestBooking({ onlineDrivers, isLoading, error, onRequest }: Pro
   const [geocoding, setGeocoding] = useState(false)
   const [passengerCount, setPassengerCount] = useState(1)
   const [rickshawTypes, setRickshawTypes] = useState<RickshawType[]>([])
+  const [selectedRickshawTypeId, setSelectedRickshawTypeId] = useState<string | null>(null)
 
   const [estimatePickup, setEstimatePickup] = useState<[number, number] | null>(null)
   const [estimateDest, setEstimateDest] = useState<[number, number] | null>(null)
@@ -46,13 +46,19 @@ export function GuestBooking({ onlineDrivers, isLoading, error, onRequest }: Pro
   const [fareLoading, setFareLoading] = useState(false)
 
   const availableTypes = rickshawTypes.length > 0 ? rickshawTypes : FALLBACK_RICKSHAW_TYPES
-  const selectedType = availableTypes.find(type => type.capacity >= passengerCount) ?? availableTypes[availableTypes.length - 1]
-  const maxPassengers = Math.max(...availableTypes.map(type => type.capacity))
+  const selectedType =
+    availableTypes.find(type => type.id === selectedRickshawTypeId)
+    ?? availableTypes.find(type => type.capacity >= passengerCount)
+    ?? availableTypes[availableTypes.length - 1]
+  const maxPassengers = selectedType?.capacity ?? Math.max(...availableTypes.map(type => type.capacity))
 
   useEffect(() => {
     const loadTypes = () => {
       dbService.getRickshawTypes().then(types => {
-        if (types.length > 0) setRickshawTypes(types)
+        if (types.length > 0) {
+          setRickshawTypes(types)
+          setSelectedRickshawTypeId(current => current ?? types[0]?.id ?? null)
+        }
       })
     }
     loadTypes()
@@ -63,11 +69,11 @@ export function GuestBooking({ onlineDrivers, isLoading, error, onRequest }: Pro
     if (!estimatePickup || !estimateDest) { setFareResult(null); setFareLoading(false); return }
     setFareLoading(true)
     const controller = new AbortController()
-    estimateFare(estimatePickup, estimateDest, selectedType.price_multiplier, controller.signal).then(result => {
+    estimateFare(estimatePickup, estimateDest, selectedType.price_per_km, controller.signal).then(result => {
       if (!controller.signal.aborted) { setFareResult(result); setFareLoading(false) }
     })
     return () => controller.abort()
-  }, [estimatePickup, estimateDest, selectedType.price_multiplier])
+  }, [estimatePickup, estimateDest, selectedType.price_per_km])
 
   const useCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -115,6 +121,11 @@ export function GuestBooking({ onlineDrivers, isLoading, error, onRequest }: Pro
     setEstimateDest(coords)
   }
 
+  const selectRickshawType = (type: RickshawType) => {
+    setSelectedRickshawTypeId(type.id)
+    setPassengerCount(current => Math.min(current, type.capacity))
+  }
+
   const handleRequest = async () => {
     setGeocodeError(null)
     setGeocoding(true)
@@ -127,7 +138,12 @@ export function GuestBooking({ onlineDrivers, isLoading, error, onRequest }: Pro
     const ll = estimateDest ?? await geocode(destDisplay.trim())
     if (!ll) { setGeocodeError('Ziel konnte nicht gefunden werden.'); setGeocoding(false); return }
     setGeocoding(false)
-    await onRequest(pickup, `${ll[0]}, ${ll[1]}`, passengerCount)
+    await onRequest(
+      pickup,
+      `${ll[0]}, ${ll[1]}`,
+      passengerCount,
+      selectedType.id.startsWith('fallback-') ? null : selectedType.id,
+    )
   }
 
   return (
@@ -203,7 +219,27 @@ export function GuestBooking({ onlineDrivers, isLoading, error, onRequest }: Pro
             </button>
           ))}
         </div>
-        <span className="guest-passengers__type">{selectedType.name}</span>
+      </div>
+
+      <div className="guest-rickshaw-types" role="radiogroup" aria-label="Rikscha-Modell">
+        {availableTypes.map(type => (
+          <button
+            key={type.id}
+            type="button"
+            role="radio"
+            aria-checked={selectedType.id === type.id}
+            className={`guest-rickshaw-type${selectedType.id === type.id ? ' guest-rickshaw-type--active' : ''}`}
+            onClick={() => selectRickshawType(type)}
+          >
+            <span className="guest-rickshaw-type__name">{type.name}</span>
+            <span className="guest-rickshaw-type__meta">
+              bis {type.capacity} {type.capacity === 1 ? 'Person' : 'Personen'}
+            </span>
+            <span className="guest-rickshaw-type__price">
+              {type.price_per_km.toFixed(2).replace('.', ',')} €/km
+            </span>
+          </button>
+        ))}
       </div>
 
       {locateError && <p className="ride-error guest-idle__error">{locateError}</p>}

@@ -17,6 +17,7 @@ export type GuestRequest = {
   passenger_count?: number
   rickshaw_type_id?: string | null
   rickshaw_price_multiplier?: number
+  rickshaw_price_per_km?: number
   ride_id?: string
   created_at: string
 }
@@ -33,6 +34,7 @@ export type Ride = {
   passenger_count?: number
   rickshaw_type_id?: string | null
   rickshaw_price_multiplier?: number
+  rickshaw_price_per_km?: number
   pickup_code?: string | null
   created_at: string
   completed_at?: string | null

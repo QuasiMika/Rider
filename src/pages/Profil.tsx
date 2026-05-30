@@ -5,6 +5,7 @@ import { useRideMatching } from '../hooks/useRideMatching'
 import { dbService, realtimeService } from '../services'
 import type { UserProfile, RickshawType } from '../services'
 import type { Ride } from '../types/ride'
+import { RoundedSelect } from '../components/common/RoundedSelect'
 import { RideTile } from '../components/rides/RideTile'
 import { RideDetailDialog, StarDisplay } from '../components/rides/RideDetailDialog'
 import './Profil.css'
@@ -189,18 +190,16 @@ export default function Profil() {
             {profile.role === 'driver' && (
               <div className="profil-card">
                 <div className="profil-card__label">Rikschatyp</div>
-                <select
+                <RoundedSelect
                   className="profil-select"
                   value={profile.rickshaw_type_id ?? ''}
-                  onChange={e => handleRickshawChange(e.target.value)}
+                  onChange={handleRickshawChange}
                   disabled={savingRickshaw || rickshawTypes.length === 0}
-                >
-                  {rickshawTypes.map(type => (
-                    <option key={type.id} value={type.id}>
-                      {type.name} · {type.capacity} Personen · Faktor {type.price_multiplier}
-                    </option>
-                  ))}
-                </select>
+                  options={rickshawTypes.map(type => ({
+                    value: type.id,
+                    label: `${type.name} · ${type.capacity} Personen · ${type.price_per_km.toFixed(2).replace('.', ',')} €/km`,
+                  }))}
+                />
                 {rickshawMessage && <div className="profil-card__hint">{rickshawMessage}</div>}
               </div>
             )}

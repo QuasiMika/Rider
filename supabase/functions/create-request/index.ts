@@ -17,10 +17,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
-    const { pickupLocation, destination, passengerCount } = (await req.json()) as {
+    const { pickupLocation, destination, passengerCount, rickshawTypeId } = (await req.json()) as {
       pickupLocation: string
       destination: string
       passengerCount?: number
+      rickshawTypeId?: string | null
     }
 
     if (!pickupLocation || !destination) {
@@ -43,11 +44,17 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     const passenger_count = Math.max(1, Math.floor(Number(passengerCount ?? 1)))
 
-    const { data: rickshawType, error: typeError } = await supabase
+    let typeQuery = supabase
       .from('rickshaw_types')
-      .select('id, price_multiplier')
+      .select('id, price_per_km')
       .eq('is_active', true)
       .gte('capacity', passenger_count)
+
+    typeQuery = rickshawTypeId
+      ? typeQuery.eq('id', rickshawTypeId)
+      : typeQuery.order('capacity', { ascending: true }).limit(1)
+
+    const { data: rickshawType, error: typeError } = await typeQuery
       .order('capacity', { ascending: true })
       .limit(1)
       .maybeSingle()
@@ -60,9 +67,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     // Price is calculated before insert so drivers immediately see it in the list.
     const basePrice = await calculatePriceEur(pickupLocation, destination)
+    const pricePerKm = Number(rickshawType.price_per_km)
     const price_eur = basePrice === null
       ? null
-      : Number((basePrice * Number(rickshawType.price_multiplier)).toFixed(2))
+      : Number(((basePrice / 2) * pricePerKm).toFixed(2))
     const pickup_code = String(Math.floor(Math.random() * 10000)).padStart(4, '0')
 
     const { data, error } = await supabase
@@ -75,7 +83,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
         price_eur,
         passenger_count,
         rickshaw_type_id: rickshawType.id,
-        rickshaw_price_multiplier: rickshawType.price_multiplier,
+        rickshaw_price_multiplier: Number((pricePerKm / 2).toFixed(2)),
+        rickshaw_price_per_km: pricePerKm,
         pickup_code,
       })
       .select('id')

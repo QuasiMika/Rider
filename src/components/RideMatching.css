@@ -814,20 +814,7 @@
 }
 
 .driver-filter__select {
-  font-family: var(--sans);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-h);
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 9px;
-  padding: 0.5rem 0.65rem;
-  outline: none;
-}
-
-.driver-filter__select:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-bg);
+  width: auto;
 }
 
 .driver-idle__empty {

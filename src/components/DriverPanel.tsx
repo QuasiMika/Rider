@@ -18,6 +18,7 @@ export function DriverPanel() {
     user?.id ?? '',
     minPassengers,
     maxPassengers,
+    driverRickshaw?.capacity ?? 0,
   )
   const [urlCompletedRide, setUrlCompletedRide] = useState<Ride | null>(null)
   const [searchParams, setSearchParams] = useSearchParams()
@@ -113,7 +114,6 @@ export function DriverPanel() {
       minPassengers={minPassengers}
       maxPassengers={maxPassengers}
       capacity={driverRickshaw?.capacity ?? 4}
-      driverPriceMultiplier={driverRickshaw?.price_multiplier ?? 1}
       onPassengerRangeChange={(min, max) => {
         setMinPassengers(min)
         setMaxPassengers(max)

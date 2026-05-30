@@ -45,6 +45,47 @@ export const restDbService: DbService = {
     }
   },
 
+  async getAdminRickshawTypes() {
+    try {
+      return await apiFetch<RickshawType[]>('/admin/rickshaw-types')
+    } catch {
+      return []
+    }
+  },
+
+  async saveRickshawType(input) {
+    try {
+      await apiFetch('/admin/rickshaw-types', {
+        method: 'POST',
+        body: JSON.stringify(input),
+      })
+      return { error: null }
+    } catch (e) {
+      return { error: toError(e) }
+    }
+  },
+
+  async setRickshawTypeActive(id, active) {
+    try {
+      await apiFetch(`/admin/rickshaw-types/${id}/active`, {
+        method: 'PATCH',
+        body: JSON.stringify({ active }),
+      })
+      return { error: null }
+    } catch (e) {
+      return { error: toError(e) }
+    }
+  },
+
+  async deleteRickshawType(id) {
+    try {
+      await apiFetch(`/admin/rickshaw-types/${id}`, { method: 'DELETE' })
+      return { error: null }
+    } catch (e) {
+      return { error: toError(e) }
+    }
+  },
+
   async getActiveRide(_userId, field) {
     try {
       return await apiFetch<Ride | null>(`/rides/active?field=${field}`)

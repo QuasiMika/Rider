@@ -35,16 +35,26 @@ export type GuestRequestRow = {
   price_eur: number | null
   passenger_count: number
   rickshaw_type_id: string | null
-  rickshaw_price_multiplier: number
+  rickshaw_price_multiplier?: number
+  rickshaw_price_per_km: number
 }
 
 export type RickshawType = {
   id: string
   name: string
   capacity: number
-  price_multiplier: number
+  price_per_km: number
+  price_multiplier?: number
   is_active?: boolean
+  assigned_drivers?: number
   created_at?: string
+}
+
+export type RickshawTypeInput = {
+  id?: string | null
+  name: string
+  capacity: number
+  price_per_km: number
 }
 
 export type ReportRow = {
@@ -61,6 +71,10 @@ export interface DbService {
 
   // rickshaw_types
   getRickshawTypes(): Promise<RickshawType[]>
+  getAdminRickshawTypes(): Promise<RickshawType[]>
+  saveRickshawType(input: RickshawTypeInput): Promise<{ error: ServiceError | null }>
+  setRickshawTypeActive(id: string, active: boolean): Promise<{ error: ServiceError | null }>
+  deleteRickshawType(id: string): Promise<{ error: ServiceError | null }>
 
   // rides
   getActiveRide(userId: string, field: 'driver_id' | 'guest_id'): Promise<Ride | null>

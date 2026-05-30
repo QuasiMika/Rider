@@ -360,7 +360,7 @@
 .guest-passengers {
   width: 100%;
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto 1fr;
   align-items: center;
   gap: 0.75rem;
   box-sizing: border-box;
@@ -404,11 +404,56 @@
   color: #fff;
 }
 
-.guest-passengers__type {
+.guest-rickshaw-types {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.guest-rickshaw-type {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg);
+  color: var(--text-h);
+  padding: 0.75rem;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+
+.guest-rickshaw-type:hover {
+  border-color: var(--accent-border);
+}
+
+.guest-rickshaw-type--active {
+  background: var(--accent-bg);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.guest-rickshaw-type__name {
+  font-size: 14px;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.guest-rickshaw-type__meta,
+.guest-rickshaw-type__price {
   color: var(--text);
   font-size: 12px;
-  font-weight: 500;
-  text-align: right;
+  line-height: 1.25;
+}
+
+.guest-rickshaw-type__price {
+  color: var(--accent);
+  font-weight: 800;
 }
 
 /* ─── Payment card (legacy, used in GuestRideActive) ────────── */
@@ -654,7 +699,7 @@
     flex-wrap: wrap;
   }
 
-  .guest-passengers__type {
-    text-align: left;
+  .guest-rickshaw-types {
+    grid-template-columns: 1fr;
   }
 }

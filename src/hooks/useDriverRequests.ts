@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { dbService, realtimeService, functionsService } from '../services'
-import type { GuestRequestRow } from '../services'
+import type { GuestRequestRow, RickshawType } from '../services'
 import type { Ride, AcceptResult } from '../types/ride'
 
 export type RequestWithProfile = {
@@ -11,7 +11,8 @@ export type RequestWithProfile = {
   destination: string
   price_eur: number | null
   passenger_count: number
-  rickshaw_price_multiplier: number
+  rickshaw_price_per_km: number
+  required_capacity: number
   guestName: string
   guestInitials: string
 }
@@ -28,7 +29,25 @@ type UseDriverRequestsResult = {
   resetToIdle: () => void
 }
 
-async function enrichRow(row: GuestRequestRow): Promise<RequestWithProfile> {
+function getRequiredCapacity(row: GuestRequestRow, typeMap: Map<string, RickshawType>): number {
+  return Math.max(row.passenger_count ?? 1, typeMap.get(row.rickshaw_type_id ?? '')?.capacity ?? 1)
+}
+
+function requestFitsDriver(
+  row: GuestRequestRow,
+  typeMap: Map<string, RickshawType>,
+  minPassengers: number,
+  maxPassengers: number,
+  driverCapacity: number,
+): boolean {
+  const passengerCount = row.passenger_count ?? 1
+  const requiredCapacity = getRequiredCapacity(row, typeMap)
+  return passengerCount >= minPassengers
+    && passengerCount <= maxPassengers
+    && requiredCapacity <= driverCapacity
+}
+
+async function enrichRow(row: GuestRequestRow, typeMap: Map<string, RickshawType>): Promise<RequestWithProfile> {
   const profiles = await dbService.getUserProfiles([row.guest_id])
   const p = profiles[0]
   const fullName = p ? `${p.first_name ?? ''} ${p.family_name ?? ''}`.trim() : ''
@@ -43,13 +62,19 @@ async function enrichRow(row: GuestRequestRow): Promise<RequestWithProfile> {
     destination: row.destination ?? '',
     price_eur: row.price_eur,
     passenger_count: row.passenger_count ?? 1,
-    rickshaw_price_multiplier: row.rickshaw_price_multiplier ?? 1,
+    rickshaw_price_per_km: row.rickshaw_price_per_km ?? (row.rickshaw_price_multiplier ?? 1) * 2,
+    required_capacity: getRequiredCapacity(row, typeMap),
     guestName: fullName || 'Gast',
     guestInitials: initials,
   }
 }
 
-export function useDriverRequests(driverId: string, minPassengers = 1, maxPassengers = Number.MAX_SAFE_INTEGER): UseDriverRequestsResult {
+export function useDriverRequests(
+  driverId: string,
+  minPassengers = 1,
+  maxPassengers = Number.MAX_SAFE_INTEGER,
+  driverCapacity = Number.MAX_SAFE_INTEGER,
+): UseDriverRequestsResult {
   const [requests, setRequests] = useState<RequestWithProfile[]>([])
   const [currentRide, setCurrentRide] = useState<Ride | null>(null)
   const [status, setStatus] = useState<DriverStatus>('browsing')
@@ -68,8 +93,12 @@ export function useDriverRequests(driverId: string, minPassengers = 1, maxPassen
   useEffect(() => {
     if (!driverId) return
     const load = async () => {
-      const rows = (await dbService.getWaitingGuestRequests())
-        .filter(r => (r.passenger_count ?? 1) >= minPassengers && (r.passenger_count ?? 1) <= maxPassengers)
+      const [allRows, rickshawTypes] = await Promise.all([
+        dbService.getWaitingGuestRequests(),
+        dbService.getRickshawTypes(),
+      ])
+      const typeMap = new Map(rickshawTypes.map(type => [type.id, type]))
+      const rows = allRows.filter(r => requestFitsDriver(r, typeMap, minPassengers, maxPassengers, driverCapacity))
       if (rows.length === 0) { setRequests([]); return }
 
       const guestIds = rows.map(r => r.guest_id)
@@ -90,14 +119,15 @@ export function useDriverRequests(driverId: string, minPassengers = 1, maxPassen
           destination: r.destination ?? '',
           price_eur: r.price_eur,
           passenger_count: r.passenger_count ?? 1,
-          rickshaw_price_multiplier: r.rickshaw_price_multiplier ?? 1,
+          rickshaw_price_per_km: r.rickshaw_price_per_km ?? (r.rickshaw_price_multiplier ?? 1) * 2,
+          required_capacity: getRequiredCapacity(r, typeMap),
           guestName: fullName || 'Gast',
           guestInitials: initials,
         }
       }))
     }
     load()
-  }, [driverId, minPassengers, maxPassengers])
+  }, [driverId, minPassengers, maxPassengers, driverCapacity])
 
   // Realtime: guest_requests INSERT / DELETE
   useEffect(() => {
@@ -105,14 +135,15 @@ export function useDriverRequests(driverId: string, minPassengers = 1, maxPassen
     return realtimeService.subscribeGuestRequests(
       `guest-requests-driver-${driverId}`,
       async (row) => {
-        const passengerCount = row.passenger_count ?? 1
-        if (passengerCount < minPassengers || passengerCount > maxPassengers) return
-        const enriched = await enrichRow(row)
+        const types = await dbService.getRickshawTypes()
+        const typeMap = new Map(types.map(type => [type.id, type]))
+        if (!requestFitsDriver(row, typeMap, minPassengers, maxPassengers, driverCapacity)) return
+        const enriched = await enrichRow(row, typeMap)
         setRequests(prev => [...prev, enriched])
       },
       (deletedId) => setRequests(prev => prev.filter(r => r.id !== deletedId)),
     )
-  }, [driverId, minPassengers, maxPassengers])
+  }, [driverId, minPassengers, maxPassengers, driverCapacity])
 
   // Realtime: rides INSERT/UPDATE for this driver
   useEffect(() => {

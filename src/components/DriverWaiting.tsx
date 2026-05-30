@@ -1,18 +1,16 @@
 import { useResolvedNames } from '../hooks/useResolvedNames'
 import type { RequestWithProfile } from '../hooks/useDriverRequests'
+import { RoundedSelect } from './common/RoundedSelect'
 
 type RequestItemProps = {
   req: RequestWithProfile
   isAccepting: boolean
-  driverPriceMultiplier: number
   onAccept: (id: string) => void
 }
 
-function RequestItem({ req, isAccepting, driverPriceMultiplier, onAccept }: RequestItemProps) {
+function RequestItem({ req, isAccepting, onAccept }: RequestItemProps) {
   const { pickupName, destName } = useResolvedNames(undefined, req.pickupLocation, req.destination)
-  const displayedPrice = req.price_eur == null
-    ? null
-    : (req.price_eur / (req.rickshaw_price_multiplier || 1)) * driverPriceMultiplier
+  const displayedPrice = req.price_eur
 
   return (
     <div className="rm-request-item">
@@ -43,6 +41,7 @@ function RequestItem({ req, isAccepting, driverPriceMultiplier, onAccept }: Requ
         )}
         <div className="rm-request-item__passengers">
           {req.passenger_count} {req.passenger_count === 1 ? 'Person' : 'Personen'}
+          {req.required_capacity > req.passenger_count && ` · Modell bis ${req.required_capacity}`}
         </div>
       </div>
       <button
@@ -64,7 +63,6 @@ type Props = {
   minPassengers: number
   maxPassengers: number
   capacity: number
-  driverPriceMultiplier: number
   onPassengerRangeChange: (min: number, max: number) => void
 }
 
@@ -76,7 +74,6 @@ export function DriverWaiting({
   minPassengers,
   maxPassengers,
   capacity,
-  driverPriceMultiplier,
   onPassengerRangeChange,
 }: Props) {
   const passengerOptions = Array.from({ length: capacity }, (_, index) => index + 1)
@@ -91,30 +88,24 @@ export function DriverWaiting({
           <div className="driver-filter__value">{minPassengers} bis {maxPassengers} Personen</div>
         </div>
         <div className="driver-filter__controls">
-          <select
-            className="driver-filter__select"
-            value={minPassengers}
-            onChange={e => {
-              const nextMin = Number(e.target.value)
+          <RoundedSelect
+            className="driver-filter__select rounded-select--compact"
+            value={String(minPassengers)}
+            options={passengerOptions.map(count => ({ value: String(count), label: `ab ${count}` }))}
+            onChange={value => {
+              const nextMin = Number(value)
               onPassengerRangeChange(nextMin, Math.max(nextMin, maxPassengers))
             }}
-          >
-            {passengerOptions.map(count => (
-              <option key={count} value={count}>ab {count}</option>
-            ))}
-          </select>
-          <select
-            className="driver-filter__select"
-            value={maxPassengers}
-            onChange={e => {
-              const nextMax = Number(e.target.value)
+          />
+          <RoundedSelect
+            className="driver-filter__select rounded-select--compact"
+            value={String(maxPassengers)}
+            options={passengerOptions.map(count => ({ value: String(count), label: `bis ${count}` }))}
+            onChange={value => {
+              const nextMax = Number(value)
               onPassengerRangeChange(Math.min(minPassengers, nextMax), nextMax)
             }}
-          >
-            {passengerOptions.map(count => (
-              <option key={count} value={count}>bis {count}</option>
-            ))}
-          </select>
+          />
         </div>
       </div>
 
@@ -140,7 +131,6 @@ export function DriverWaiting({
                 key={req.id}
                 req={req}
                 isAccepting={isAccepting}
-                driverPriceMultiplier={driverPriceMultiplier}
                 onAccept={onAccept}
               />
             ))}

@@ -1,0 +1,109 @@
+.rounded-select {
+  position: relative;
+  width: 100%;
+}
+
+.rounded-select__button {
+  width: 100%;
+  min-height: 40px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text-h);
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 0.65rem 0.75rem;
+  cursor: pointer;
+  text-align: left;
+}
+
+.rounded-select__button:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}
+
+.rounded-select__button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.rounded-select__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rounded-select__chevron {
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  border-right: 1.5px solid var(--text);
+  border-bottom: 1.5px solid var(--text);
+  transform: translateY(-2px) rotate(45deg);
+}
+
+.rounded-select__menu {
+  position: absolute;
+  z-index: 30;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+  box-shadow: var(--shadow);
+  padding: 0.35rem;
+}
+
+.rounded-select__option {
+  width: 100%;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-h);
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 0.55rem 0.65rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rounded-select__option:hover,
+.rounded-select__option--active {
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+
+.rounded-select--compact {
+  width: auto;
+}
+
+.rounded-select--compact .rounded-select__button {
+  min-height: 34px;
+  min-width: 76px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0.5rem 0.65rem;
+}
+
+.rounded-select--compact .rounded-select__menu {
+  min-width: 100%;
+}
+
+.rounded-select--compact .rounded-select__option {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}

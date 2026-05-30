@@ -29,7 +29,7 @@ app.use('/checkout', checkoutRouter)
 
 app.get('/rickshaw-types', async (_req, res) => {
   const { rows } = await pool.query(
-    `SELECT id, name, capacity, price_multiplier, is_active, created_at
+    `SELECT id, name, capacity, price_per_km, is_active, created_at
        FROM rickshaw_types
       WHERE is_active = true
       ORDER BY capacity ASC, name ASC`,

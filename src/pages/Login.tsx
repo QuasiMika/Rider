@@ -208,7 +208,7 @@ export default function AuthPage({ initialMode = 'login' }: Props) {
                 >
                   {rickshawTypes.map(type => (
                     <option key={type.id} value={type.id}>
-                      {type.name} · bis {type.capacity} Personen · Faktor {type.price_multiplier}
+                      {type.name} · bis {type.capacity} Personen · {type.price_per_km.toFixed(2).replace('.', ',')} €/km
                     </option>
                   ))}
                 </select>

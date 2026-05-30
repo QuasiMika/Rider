@@ -699,6 +699,125 @@
   color: var(--accent);
 }
 
+/* Vehicle types */
+.admin-vehicles {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.admin-vehicle-form {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+  padding: 1rem;
+}
+
+.admin-vehicle-form__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.admin-vehicle-form__header h2 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--text-h);
+}
+
+.admin-vehicle-form__grid {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.4fr) minmax(140px, 0.8fr) minmax(160px, 0.9fr) auto;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.admin-vehicle-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.admin-vehicle-field span {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.admin-vehicle-form__feedback {
+  padding: 0.75rem 0 0;
+  text-align: left;
+}
+
+.admin-vehicle-form__success {
+  margin: 0.75rem 0 0;
+  color: var(--accent);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.admin-vehicle-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.admin-vehicle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+  padding: 1rem 1.25rem;
+}
+
+.admin-vehicle-row--inactive {
+  opacity: 0.78;
+}
+
+.admin-vehicle-row__main {
+  min-width: 0;
+}
+
+.admin-vehicle-row__title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  color: var(--text-h);
+  margin-bottom: 0.2rem;
+}
+
+.admin-vehicle-row__meta {
+  color: var(--text);
+  font-size: 0.85rem;
+}
+
+.admin-vehicle-row__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.admin-toggle-btn--danger {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fca5a5;
+}
+
+.admin-toggle-btn--danger:hover:not(:disabled) {
+  background: #fecaca;
+}
+
 @media (min-width: 641px) {
   .admin-detail-backdrop {
     align-items: center;
@@ -747,6 +866,19 @@
   .admin-filter-bar {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .admin-vehicle-form__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-vehicle-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-vehicle-row__actions {
+    justify-content: stretch;
   }
 
   .admin-filter-bar__count {

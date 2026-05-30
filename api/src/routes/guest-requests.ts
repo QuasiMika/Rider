@@ -18,7 +18,7 @@ router.get('/', requireAuth, async (req, res: Response) => {
   if (role === 'driver') {
     const { rows } = await pool.query(
       `SELECT id, guest_id, created_at, pickup_location, destination, price_eur,
-              passenger_count, rickshaw_type_id, rickshaw_price_multiplier
+              passenger_count, rickshaw_type_id, rickshaw_price_multiplier, rickshaw_price_per_km
          FROM guest_requests WHERE status = 'waiting'
          ORDER BY created_at ASC`,
     )
@@ -38,6 +38,7 @@ router.post('/', requireAuth, async (req, res: Response) => {
   const guestId = (req as AuthRequest).userId
   const { pickupLocation, destination } = req.body
   const passengerCount = Math.max(1, Math.floor(Number(req.body.passengerCount ?? 1)))
+  const rickshawTypeId = typeof req.body.rickshawTypeId === 'string' ? req.body.rickshawTypeId : null
   if (!pickupLocation || !destination) {
     return res.status(400).json({ message: 'pickupLocation and destination required' })
   }
@@ -47,14 +48,16 @@ router.post('/', requireAuth, async (req, res: Response) => {
   try {
     const { rows: typeRows } = await pool.query<{
       id: string
-      price_multiplier: number
+      price_per_km: number
     }>(
-      `SELECT id, price_multiplier
+      `SELECT id, price_per_km
          FROM rickshaw_types
-        WHERE is_active = true AND capacity >= $1
+        WHERE is_active = true
+          AND capacity >= $1
+          AND ($2::uuid IS NULL OR id = $2::uuid)
         ORDER BY capacity ASC
         LIMIT 1`,
-      [passengerCount],
+      [passengerCount, rickshawTypeId],
     )
     const rickshawType = typeRows[0]
     if (!rickshawType) {
@@ -62,16 +65,17 @@ router.post('/', requireAuth, async (req, res: Response) => {
     }
 
     const basePrice = await calculatePriceEur(pickupLocation, destination)
+    const pricePerKm = Number(rickshawType.price_per_km)
     const price_eur = basePrice === null
       ? null
-      : Number((basePrice * Number(rickshawType.price_multiplier)).toFixed(2))
+      : Number(((basePrice / 2) * pricePerKm).toFixed(2))
 
     const { rows } = await pool.query<{ id: string }>(
       `INSERT INTO guest_requests (
          guest_id, status, pickup_location, destination, price_eur,
-         passenger_count, rickshaw_type_id, rickshaw_price_multiplier
+         passenger_count, rickshaw_type_id, rickshaw_price_multiplier, rickshaw_price_per_km
        )
-       VALUES ($1, 'waiting', $2, $3, $4, $5, $6, $7)
+       VALUES ($1, 'waiting', $2, $3, $4, $5, $6, $7, $8)
        RETURNING id`,
       [
         guestId,
@@ -80,7 +84,8 @@ router.post('/', requireAuth, async (req, res: Response) => {
         price_eur,
         passengerCount,
         rickshawType.id,
-        rickshawType.price_multiplier,
+        Number((pricePerKm / 2).toFixed(2)),
+        pricePerKm,
       ],
     )
     res.status(201).json({ id: rows[0].id, price_eur })

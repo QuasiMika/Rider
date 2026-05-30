@@ -41,6 +41,38 @@ export const supabaseDbService: DbService = {
     return (data ?? []) as RickshawType[]
   },
 
+  async getAdminRickshawTypes() {
+    const { data } = await supabase.rpc('get_admin_rickshaw_types')
+    return (data ?? []) as RickshawType[]
+  },
+
+  async saveRickshawType(input) {
+    const { error } = await supabase.rpc('admin_upsert_rickshaw_type', {
+      p_id: input.id ?? null,
+      p_name: input.name,
+      p_capacity: input.capacity,
+      p_price_per_km: input.price_per_km,
+    })
+    return { error: error ? { message: error.message } : null }
+  },
+
+  async setRickshawTypeActive(id, active) {
+    const { error } = await supabase.rpc('admin_set_rickshaw_type_active', {
+      p_id: id,
+      p_active: active,
+      p_replacement_id: null,
+    })
+    return { error: error ? { message: error.message } : null }
+  },
+
+  async deleteRickshawType(id) {
+    const { error } = await supabase.rpc('admin_delete_rickshaw_type', {
+      p_id: id,
+      p_replacement_id: null,
+    })
+    return { error: error ? { message: error.message } : null }
+  },
+
   async getActiveRide(userId, field) {
     const { data } = await supabase
       .from('rides')
@@ -59,7 +91,7 @@ export const supabaseDbService: DbService = {
   async getCompletedRides(userId, field) {
     const { data } = await supabase
       .from('rides')
-      .select('id, driver_id, guest_id, status, pickup_location, destination, actual_end_location, price_eur, passenger_count, rickshaw_type_id, rickshaw_price_multiplier, created_at, completed_at')
+      .select('id, driver_id, guest_id, status, pickup_location, destination, actual_end_location, price_eur, passenger_count, rickshaw_type_id, rickshaw_price_multiplier, rickshaw_price_per_km, created_at, completed_at')
       .eq(field, userId)
       .eq('status', 'completed')
       .order('created_at', { ascending: false })
@@ -79,7 +111,7 @@ export const supabaseDbService: DbService = {
   async getWaitingGuestRequests() {
     const { data } = await supabase
       .from('guest_requests')
-      .select('id, guest_id, created_at, pickup_location, destination, price_eur, passenger_count, rickshaw_type_id, rickshaw_price_multiplier')
+      .select('id, guest_id, created_at, pickup_location, destination, price_eur, passenger_count, rickshaw_type_id, rickshaw_price_multiplier, rickshaw_price_per_km')
       .eq('status', 'waiting')
       .order('created_at', { ascending: true })
     return (data ?? []) as GuestRequestRow[]
