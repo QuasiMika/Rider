@@ -1,5 +1,6 @@
 import { useResolvedNames } from '../hooks/useResolvedNames'
 import type { RequestWithProfile } from '../hooks/useDriverRequests'
+import type { DriverModelFilter } from '../hooks/useDriverRequests'
 import { RoundedSelect } from './common/RoundedSelect'
 
 type RequestItemProps = {
@@ -41,7 +42,8 @@ function RequestItem({ req, isAccepting, onAccept }: RequestItemProps) {
         )}
         <div className="rm-request-item__passengers">
           {req.passenger_count} {req.passenger_count === 1 ? 'Person' : 'Personen'}
-          {req.required_capacity > req.passenger_count && ` · Modell bis ${req.required_capacity}`}
+          {` · ${req.rickshaw_type_name}`}
+          {` · ${req.required_price_per_km.toFixed(2).replace('.', ',')} €/km`}
         </div>
       </div>
       <button
@@ -63,7 +65,9 @@ type Props = {
   minPassengers: number
   maxPassengers: number
   capacity: number
+  modelFilter: DriverModelFilter
   onPassengerRangeChange: (min: number, max: number) => void
+  onModelFilterChange: (filter: DriverModelFilter) => void
 }
 
 export function DriverWaiting({
@@ -74,9 +78,15 @@ export function DriverWaiting({
   minPassengers,
   maxPassengers,
   capacity,
+  modelFilter,
   onPassengerRangeChange,
+  onModelFilterChange,
 }: Props) {
   const passengerOptions = Array.from({ length: capacity }, (_, index) => index + 1)
+  const modelFilterLabels: Record<DriverModelFilter, string> = {
+    all: 'alle Rikscha-Modelle',
+    same: 'eigenes Rikscha-Modell',
+  }
 
   return (
     <div className="driver-idle">
@@ -85,7 +95,10 @@ export function DriverWaiting({
       <div className="driver-filter">
         <div>
           <div className="driver-filter__label">Aufträge für</div>
-          <div className="driver-filter__value">{minPassengers} bis {maxPassengers} Personen</div>
+          <div className="driver-filter__value">
+            <span>{minPassengers} bis {maxPassengers} Personen</span>
+            <span>{modelFilterLabels[modelFilter]}</span>
+          </div>
         </div>
         <div className="driver-filter__controls">
           <RoundedSelect
@@ -105,6 +118,15 @@ export function DriverWaiting({
               const nextMax = Number(value)
               onPassengerRangeChange(Math.min(minPassengers, nextMax), nextMax)
             }}
+          />
+          <RoundedSelect
+            className="driver-filter__select driver-filter__select--model rounded-select--compact"
+            value={modelFilter}
+            options={[
+              { value: 'all', label: 'alle Modelle' },
+              { value: 'same', label: 'eigenes Modell' },
+            ]}
+            onChange={value => onModelFilterChange(value as DriverModelFilter)}
           />
         </div>
       </div>

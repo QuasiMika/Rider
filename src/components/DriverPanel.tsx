@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthUser'
 import { useDriverRequests } from '../hooks/useDriverRequests'
+import type { DriverModelFilter } from '../hooks/useDriverRequests'
 import { presenceService, dbService, realtimeService } from '../services'
 import type { RickshawType } from '../services'
 import type { Ride } from '../types/ride'
@@ -14,11 +15,14 @@ export function DriverPanel() {
   const [driverRickshaw, setDriverRickshaw] = useState<RickshawType | null>(null)
   const [minPassengers, setMinPassengers] = useState(1)
   const [maxPassengers, setMaxPassengers] = useState(4)
+  const [modelFilter, setModelFilter] = useState<DriverModelFilter>('all')
   const { requests, currentRide, status, isAccepting, error, acceptRequest, resetToIdle } = useDriverRequests(
     user?.id ?? '',
     minPassengers,
     maxPassengers,
     driverRickshaw?.capacity ?? 0,
+    driverRickshaw?.price_per_km ?? 0,
+    modelFilter,
   )
   const [urlCompletedRide, setUrlCompletedRide] = useState<Ride | null>(null)
   const [searchParams, setSearchParams] = useSearchParams()
@@ -114,10 +118,12 @@ export function DriverPanel() {
       minPassengers={minPassengers}
       maxPassengers={maxPassengers}
       capacity={driverRickshaw?.capacity ?? 4}
+      modelFilter={modelFilter}
       onPassengerRangeChange={(min, max) => {
         setMinPassengers(min)
         setMaxPassengers(max)
       }}
+      onModelFilterChange={setModelFilter}
     />
   )
 }

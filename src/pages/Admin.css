@@ -818,6 +818,63 @@
   background: #fecaca;
 }
 
+.admin-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  background: rgba(0, 0, 0, 0.42);
+  animation: admin-fade-in 0.15s ease;
+}
+
+.admin-confirm-dialog {
+  width: 100%;
+  max-width: 420px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--bg);
+  box-shadow: var(--shadow);
+  padding: 1.4rem;
+  text-align: left;
+}
+
+.admin-confirm-dialog__icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+  font-weight: 800;
+  margin-bottom: 0.9rem;
+}
+
+.admin-confirm-dialog h3 {
+  margin: 0 0 0.5rem;
+  color: var(--text-h);
+  font-size: 1.1rem;
+}
+
+.admin-confirm-dialog p {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.admin-confirm-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 1.25rem;
+}
+
 @media (min-width: 641px) {
   .admin-detail-backdrop {
     align-items: center;

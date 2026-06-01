@@ -13,9 +13,13 @@ export type RequestWithProfile = {
   passenger_count: number
   rickshaw_price_per_km: number
   required_capacity: number
+  required_price_per_km: number
+  rickshaw_type_name: string
   guestName: string
   guestInitials: string
 }
+
+export type DriverModelFilter = 'all' | 'same'
 
 type DriverStatus = 'browsing' | 'matched' | 'error'
 
@@ -33,18 +37,39 @@ function getRequiredCapacity(row: GuestRequestRow, typeMap: Map<string, Rickshaw
   return Math.max(row.passenger_count ?? 1, typeMap.get(row.rickshaw_type_id ?? '')?.capacity ?? 1)
 }
 
+function getRequiredPricePerKm(row: GuestRequestRow, typeMap: Map<string, RickshawType>): number {
+  return row.rickshaw_price_per_km
+    ?? typeMap.get(row.rickshaw_type_id ?? '')?.price_per_km
+    ?? (row.rickshaw_price_multiplier ?? 1) * 2
+}
+
+function getTypeName(row: GuestRequestRow, typeMap: Map<string, RickshawType>): string {
+  const type = typeMap.get(row.rickshaw_type_id ?? '')
+  if (type) return type.name
+  return `Modell bis ${getRequiredCapacity(row, typeMap)}`
+}
+
+function matchesModelFilter(requiredPricePerKm: number, driverPricePerKm: number, filter: DriverModelFilter): boolean {
+  if (filter === 'same') return Math.abs(requiredPricePerKm - driverPricePerKm) < 0.01
+  return requiredPricePerKm <= driverPricePerKm
+}
+
 function requestFitsDriver(
   row: GuestRequestRow,
   typeMap: Map<string, RickshawType>,
   minPassengers: number,
   maxPassengers: number,
   driverCapacity: number,
+  driverPricePerKm: number,
+  modelFilter: DriverModelFilter,
 ): boolean {
   const passengerCount = row.passenger_count ?? 1
   const requiredCapacity = getRequiredCapacity(row, typeMap)
+  const requiredPricePerKm = getRequiredPricePerKm(row, typeMap)
   return passengerCount >= minPassengers
     && passengerCount <= maxPassengers
     && requiredCapacity <= driverCapacity
+    && matchesModelFilter(requiredPricePerKm, driverPricePerKm, modelFilter)
 }
 
 async function enrichRow(row: GuestRequestRow, typeMap: Map<string, RickshawType>): Promise<RequestWithProfile> {
@@ -62,8 +87,10 @@ async function enrichRow(row: GuestRequestRow, typeMap: Map<string, RickshawType
     destination: row.destination ?? '',
     price_eur: row.price_eur,
     passenger_count: row.passenger_count ?? 1,
-    rickshaw_price_per_km: row.rickshaw_price_per_km ?? (row.rickshaw_price_multiplier ?? 1) * 2,
+    rickshaw_price_per_km: getRequiredPricePerKm(row, typeMap),
     required_capacity: getRequiredCapacity(row, typeMap),
+    required_price_per_km: getRequiredPricePerKm(row, typeMap),
+    rickshaw_type_name: getTypeName(row, typeMap),
     guestName: fullName || 'Gast',
     guestInitials: initials,
   }
@@ -74,6 +101,8 @@ export function useDriverRequests(
   minPassengers = 1,
   maxPassengers = Number.MAX_SAFE_INTEGER,
   driverCapacity = Number.MAX_SAFE_INTEGER,
+  driverPricePerKm = Number.MAX_SAFE_INTEGER,
+  modelFilter: DriverModelFilter = 'all',
 ): UseDriverRequestsResult {
   const [requests, setRequests] = useState<RequestWithProfile[]>([])
   const [currentRide, setCurrentRide] = useState<Ride | null>(null)
@@ -98,7 +127,7 @@ export function useDriverRequests(
         dbService.getRickshawTypes(),
       ])
       const typeMap = new Map(rickshawTypes.map(type => [type.id, type]))
-      const rows = allRows.filter(r => requestFitsDriver(r, typeMap, minPassengers, maxPassengers, driverCapacity))
+      const rows = allRows.filter(r => requestFitsDriver(r, typeMap, minPassengers, maxPassengers, driverCapacity, driverPricePerKm, modelFilter))
       if (rows.length === 0) { setRequests([]); return }
 
       const guestIds = rows.map(r => r.guest_id)
@@ -119,15 +148,17 @@ export function useDriverRequests(
           destination: r.destination ?? '',
           price_eur: r.price_eur,
           passenger_count: r.passenger_count ?? 1,
-          rickshaw_price_per_km: r.rickshaw_price_per_km ?? (r.rickshaw_price_multiplier ?? 1) * 2,
+          rickshaw_price_per_km: getRequiredPricePerKm(r, typeMap),
           required_capacity: getRequiredCapacity(r, typeMap),
+          required_price_per_km: getRequiredPricePerKm(r, typeMap),
+          rickshaw_type_name: getTypeName(r, typeMap),
           guestName: fullName || 'Gast',
           guestInitials: initials,
         }
       }))
     }
     load()
-  }, [driverId, minPassengers, maxPassengers, driverCapacity])
+  }, [driverId, minPassengers, maxPassengers, driverCapacity, driverPricePerKm, modelFilter])
 
   // Realtime: guest_requests INSERT / DELETE
   useEffect(() => {
@@ -137,13 +168,13 @@ export function useDriverRequests(
       async (row) => {
         const types = await dbService.getRickshawTypes()
         const typeMap = new Map(types.map(type => [type.id, type]))
-        if (!requestFitsDriver(row, typeMap, minPassengers, maxPassengers, driverCapacity)) return
+        if (!requestFitsDriver(row, typeMap, minPassengers, maxPassengers, driverCapacity, driverPricePerKm, modelFilter)) return
         const enriched = await enrichRow(row, typeMap)
         setRequests(prev => [...prev, enriched])
       },
       (deletedId) => setRequests(prev => prev.filter(r => r.id !== deletedId)),
     )
-  }, [driverId, minPassengers, maxPassengers, driverCapacity])
+  }, [driverId, minPassengers, maxPassengers, driverCapacity, driverPricePerKm, modelFilter])
 
   // Realtime: rides INSERT/UPDATE for this driver
   useEffect(() => {
@@ -168,10 +199,10 @@ export function useDriverRequests(
         const ride = await dbService.getRideById(result.ride_id)
         if (ride) { setCurrentRide(ride); setStatus('matched') }
       } else if (!result.accepted) {
-        setError(result.reason === 'capacity_too_small'
+        setError(result.reason === 'capacity_too_small' || result.reason === 'price_class_too_low'
           ? 'Diese Anfrage ist größer als deine aktuelle Rikscha-Kapazität.'
           : 'Diese Anfrage wurde bereits von einem anderen Fahrer angenommen.')
-        if (result.reason !== 'capacity_too_small') {
+        if (result.reason !== 'capacity_too_small' && result.reason !== 'price_class_too_low') {
           setRequests(prev => prev.filter(r => r.id !== requestId))
         }
       }

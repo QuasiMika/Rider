@@ -415,6 +415,10 @@ BEGIN
     RETURN json_build_object('accepted', false, 'reason', 'capacity_too_small');
   END IF;
 
+  IF v_request_price_per_km > v_driver_price_per_km THEN
+    RETURN json_build_object('accepted', false, 'reason', 'price_class_too_low');
+  END IF;
+
   v_final_price_eur := v_price_eur;
 
   INSERT INTO rides (

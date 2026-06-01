@@ -688,6 +688,7 @@ function VehicleTypes() {
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [form, setForm] = useState<VehicleForm>(EMPTY_VEHICLE_FORM)
+  const [deleteCandidate, setDeleteCandidate] = useState<RickshawType | null>(null)
 
   const loadTypes = async () => {
     const data = await dbService.getAdminRickshawTypes()
@@ -744,7 +745,7 @@ function VehicleTypes() {
       return
     }
 
-    setMessage(isEditing ? 'Fahrzeugtyp gespeichert.' : 'Fahrzeugtyp angelegt.')
+    setMessage(isEditing ? 'Rikscha-Modell gespeichert.' : 'Rikscha-Modell angelegt.')
     setForm(EMPTY_VEHICLE_FORM)
     await loadTypes()
   }
@@ -753,7 +754,7 @@ function VehicleTypes() {
     setError(null)
     setMessage(null)
     if (type.is_active && (types.length <= 1 || activeCount <= 1)) {
-      setError('Der letzte aktive Fahrzeugtyp kann nicht deaktiviert werden.')
+      setError('Das letzte aktive Rikscha-Modell kann nicht deaktiviert werden.')
       return
     }
 
@@ -761,36 +762,41 @@ function VehicleTypes() {
     const { error: toggleError } = await dbService.setRickshawTypeActive(type.id, !type.is_active)
     setSaving(false)
     if (toggleError) { setError(toggleError.message); return }
-    setMessage(type.is_active ? 'Fahrzeugtyp deaktiviert. Zugeordnete Fahrer wurden umgestellt.' : 'Fahrzeugtyp aktiviert.')
+    setMessage(type.is_active ? 'Rikscha-Modell deaktiviert. Zugeordnete Fahrer wurden umgestellt.' : 'Rikscha-Modell aktiviert.')
     await loadTypes()
   }
 
-  const deleteType = async (type: RickshawType) => {
+  const requestDeleteType = (type: RickshawType) => {
     setError(null)
     setMessage(null)
     if (types.length <= 1) {
-      setError('Der letzte Fahrzeugtyp kann nicht gelöscht werden.')
+      setError('Das letzte Rikscha-Modell kann nicht gelöscht werden.')
       return
     }
-    const ok = window.confirm(`${type.name} löschen? Zugeordnete Fahrer werden vorher auf einen anderen aktiven Typ gesetzt.`)
-    if (!ok) return
+    setDeleteCandidate(type)
+  }
+
+  const confirmDeleteType = async () => {
+    if (!deleteCandidate) return
 
     setSaving(true)
-    const { error: deleteError } = await dbService.deleteRickshawType(type.id)
+    const deletingId = deleteCandidate.id
+    const { error: deleteError } = await dbService.deleteRickshawType(deletingId)
     setSaving(false)
     if (deleteError) { setError(deleteError.message); return }
-    if (form.id === type.id) setForm(EMPTY_VEHICLE_FORM)
-    setMessage('Fahrzeugtyp gelöscht. Zugeordnete Fahrer wurden umgestellt.')
+    if (form.id === deletingId) setForm(EMPTY_VEHICLE_FORM)
+    setDeleteCandidate(null)
+    setMessage('Rikscha-Modell gelöscht. Zugeordnete Fahrer wurden umgestellt.')
     await loadTypes()
   }
 
-  if (loading) return <div className="admin-loading">Lade Fahrzeugtypen...</div>
+  if (loading) return <div className="admin-loading">Lade Rikscha-Modelle...</div>
 
   return (
     <div className="admin-vehicles">
       <form className="admin-vehicle-form" onSubmit={handleSubmit}>
         <div className="admin-vehicle-form__header">
-          <h2>{isEditing ? 'Fahrzeugtyp bearbeiten' : 'Neuen Fahrzeugtyp anlegen'}</h2>
+          <h2>{isEditing ? 'Rikscha-Modell bearbeiten' : 'Neues Rikscha-Modell anlegen'}</h2>
           {isEditing && (
             <button type="button" className="admin-toggle-btn admin-toggle-btn--details" onClick={resetForm}>
               Neu
@@ -837,7 +843,7 @@ function VehicleTypes() {
       </form>
 
       {types.length === 0 ? (
-        <p className="admin-empty">Keine Fahrzeugtypen angelegt.</p>
+        <p className="admin-empty">Keine Rikscha-Modelle angelegt.</p>
       ) : (
         <div className="admin-vehicle-list">
           {types.map(type => {
@@ -872,7 +878,7 @@ function VehicleTypes() {
                     className="admin-toggle-btn admin-toggle-btn--danger"
                     type="button"
                     disabled={saving || !canDelete}
-                    onClick={() => deleteType(type)}
+                    onClick={() => requestDeleteType(type)}
                   >
                     Löschen
                   </button>
@@ -880,6 +886,42 @@ function VehicleTypes() {
               </div>
             )
           })}
+        </div>
+      )}
+
+      {deleteCandidate && (
+        <div className="admin-confirm-backdrop" onClick={() => !saving && setDeleteCandidate(null)}>
+          <div
+            className="admin-confirm-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-rickshaw-title"
+            onClick={event => event.stopPropagation()}
+          >
+            <div className="admin-confirm-dialog__icon">!</div>
+            <h3 id="delete-rickshaw-title">Rikscha-Modell löschen?</h3>
+            <p>
+              <strong>{deleteCandidate.name}</strong> wird gelöscht. Zugeordnete Fahrer werden vorher auf ein anderes aktives Modell gesetzt.
+            </p>
+            <div className="admin-confirm-dialog__actions">
+              <button
+                type="button"
+                className="admin-toggle-btn admin-toggle-btn--deactivate"
+                disabled={saving}
+                onClick={() => setDeleteCandidate(null)}
+              >
+                Abbrechen
+              </button>
+              <button
+                type="button"
+                className="admin-toggle-btn admin-toggle-btn--danger"
+                disabled={saving}
+                onClick={confirmDeleteType}
+              >
+                {saving ? 'Löscht...' : 'Löschen'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -920,7 +962,7 @@ export default function Admin() {
             className={`admin-tab${tab === 'vehicles' ? ' admin-tab--active' : ''}`}
             onClick={() => setTab('vehicles')}
           >
-            Fahrzeugtypen
+            Rikscha-Modelle
           </button>
         </div>
 

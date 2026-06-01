@@ -806,6 +806,16 @@
   font-size: 15px;
   font-weight: 600;
   color: var(--text-h);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.25;
+}
+
+.driver-filter__value span:last-child {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
 }
 
 .driver-filter__controls {
@@ -815,6 +825,10 @@
 
 .driver-filter__select {
   width: auto;
+}
+
+.driver-filter__select--model .rounded-select__button {
+  min-width: 98px;
 }
 
 .driver-idle__empty {
