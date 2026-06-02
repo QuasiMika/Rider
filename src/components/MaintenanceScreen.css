@@ -1,0 +1,35 @@
+.maintenance {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  padding: 2rem;
+}
+
+.maintenance-card {
+  max-width: 420px;
+  text-align: center;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 2.5rem 2rem;
+  box-shadow: var(--shadow);
+}
+
+.maintenance-icon {
+  font-size: 3rem;
+  line-height: 1;
+  margin-bottom: 1rem;
+}
+
+.maintenance-title {
+  color: var(--text-h);
+  font-family: var(--heading);
+  font-size: 1.4rem;
+  margin: 0 0 0.75rem;
+}
+
+.maintenance-text {
+  color: var(--text);
+  margin: 0;
+}

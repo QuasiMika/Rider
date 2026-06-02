@@ -1,11 +1,13 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import { authService } from '../services'
+import { authService, dbService } from '../services'
 import type { AuthUser, AuthSession, UserRole } from '../services'
 
 type AuthContextType = {
   user: AuthUser | null
   session: AuthSession | null
   loading: boolean
+  // true, wenn das initiale Laden der Nutzerdaten fehlschlägt (z. B. 503 vom Backend)
+  backendError: boolean
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
   signUp: (
     email: string,
@@ -24,6 +26,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [session, setSession] = useState<AuthSession | null>(null)
   const [loading, setLoading] = useState(true)
+  const [backendError, setBackendError] = useState(false)
 
   useEffect(() => {
     authService.getSession().then((s) => {
@@ -40,12 +43,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return unsubscribe
   }, [])
 
+  // Backend-Health-Check: sobald ein User eingeloggt ist, laden wir dessen Profil.
+  // Schlägt das fehl (Backend down / 503), schalten wir global den Wartungsmodus an.
+  useEffect(() => {
+    if (!user) { setBackendError(false); return }
+    let cancelled = false
+    dbService.getUserProfile(user.id).then(({ error }) => {
+      if (!cancelled) setBackendError(!!error)
+    })
+    return () => { cancelled = true }
+  }, [user])
+
   return (
     <AuthContext.Provider
       value={{
         user,
         session,
         loading,
+        backendError,
         signIn: authService.signIn.bind(authService),
         signUp: authService.signUp.bind(authService),
         signOut: authService.signOut.bind(authService),

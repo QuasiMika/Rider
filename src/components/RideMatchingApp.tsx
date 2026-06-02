@@ -4,6 +4,7 @@ import { dbService } from '../services'
 import { useAuth } from '../auth/AuthUser'
 import { DriverPanel } from './DriverPanel'
 import { GuestPanel } from './GuestPanel'
+import { MaintenanceScreen } from './MaintenanceScreen'
 import './RideMatching.css'
 
 type AppRole = 'driver' | 'guest' | null
@@ -25,13 +26,16 @@ export function RideMatchingApp() {
 
   if (!user) return <Navigate to="/login" replace />
 
+  // Schlägt das initiale Laden der Nutzerdaten fehl (z. B. 503 vom Backend),
+  // zeigen wir den Wartungsmodus statt des kaputten Dashboards.
+  if (error) return <MaintenanceScreen />
+
   return (
     <div className="rm">
       <section className="rm-content">
         {loading && <p style={{ color: 'var(--text)' }}>Lade...</p>}
-        {error && <p className="ride-error">{error}</p>}
-        {!loading && !error && role === 'driver' && <DriverPanel />}
-        {!loading && !error && role === 'guest' && <GuestPanel />}
+        {!loading && role === 'driver' && <DriverPanel />}
+        {!loading && role === 'guest' && <GuestPanel />}
       </section>
     </div>
   )

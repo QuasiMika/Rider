@@ -1,6 +1,7 @@
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth/AuthUser'
 import { AppLayout } from './components/AppLayout'
+import { MaintenanceScreen } from './components/MaintenanceScreen'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Help from './pages/Help'
@@ -21,28 +22,38 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+// Globale Schranke: Schlägt der Backend-Health-Check fehl, zeigen wir
+// app-weit den Wartungsmodus statt der (kaputten) Routen.
+function BackendGate({ children }: { children: React.ReactNode }) {
+  const { backendError } = useAuth()
+  if (backendError) return <MaintenanceScreen />
+  return <>{children}</>
+}
+
 export default function App() {
   return (
     <AuthProvider>
-      <HashRouter>
-        <Routes>
-          <Route element={<AppLayout />}>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/help" element={<Help />} />
-            <Route path="/impressum" element={<Impressum />} />
-            <Route path="/profil" element={<ProtectedRoute><Profil /></ProtectedRoute>} />
-            <Route path="/profile/:id" element={<ProtectedRoute><PublicProfile /></ProtectedRoute>} />
-            <Route path="/report/:rideId" element={<ProtectedRoute><ReportDetail /></ProtectedRoute>} />
-            <Route path="/ride" element={<ProtectedRoute><RideMatchingApp /></ProtectedRoute>} />
-            <Route path="/einnahmen" element={<ProtectedRoute><Einnahmen /></ProtectedRoute>} />
-            <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
-            <Route path="/driver" element={<Navigate to="/ride" replace />} />
-            <Route path="/guest" element={<Navigate to="/ride" replace />} />
-          </Route>
-        </Routes>
-      </HashRouter>
+      <BackendGate>
+        <HashRouter>
+          <Routes>
+            <Route element={<AppLayout />}>
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/help" element={<Help />} />
+              <Route path="/impressum" element={<Impressum />} />
+              <Route path="/profil" element={<ProtectedRoute><Profil /></ProtectedRoute>} />
+              <Route path="/profile/:id" element={<ProtectedRoute><PublicProfile /></ProtectedRoute>} />
+              <Route path="/report/:rideId" element={<ProtectedRoute><ReportDetail /></ProtectedRoute>} />
+              <Route path="/ride" element={<ProtectedRoute><RideMatchingApp /></ProtectedRoute>} />
+              <Route path="/einnahmen" element={<ProtectedRoute><Einnahmen /></ProtectedRoute>} />
+              <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+              <Route path="/driver" element={<Navigate to="/ride" replace />} />
+              <Route path="/guest" element={<Navigate to="/ride" replace />} />
+            </Route>
+          </Routes>
+        </HashRouter>
+      </BackendGate>
     </AuthProvider>
   )
 }
