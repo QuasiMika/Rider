@@ -37,6 +37,18 @@ export const restDbService: DbService = {
     }
   },
 
+  async updateUserProfile(userId, firstName, familyName) {
+    try {
+      await apiFetch(`/users/${userId}/profile`, {
+        method: 'PATCH',
+        body: JSON.stringify({ firstName, familyName }),
+      })
+      return { error: null }
+    } catch (e) {
+      return { error: toError(e) }
+    }
+  },
+
   async getRickshawTypes() {
     try {
       return await apiFetch<RickshawType[]>('/rickshaw-types')

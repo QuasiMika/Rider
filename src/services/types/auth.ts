@@ -25,4 +25,5 @@ export interface AuthService {
     rickshawTypeId?: string | null,
   ): Promise<{ error: string | null }>
   signOut(): Promise<void>
+  updatePassword(currentPassword: string, newPassword: string): Promise<{ error: string | null }>
 }

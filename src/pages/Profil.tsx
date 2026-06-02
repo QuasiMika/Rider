@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthUser'
 import { useRideMatching } from '../hooks/useRideMatching'
-import { dbService, realtimeService } from '../services'
+import { authService, dbService, realtimeService } from '../services'
 import type { UserProfile, RickshawType } from '../services'
 import type { Ride } from '../types/ride'
 import { RoundedSelect } from '../components/common/RoundedSelect'
@@ -72,6 +72,19 @@ export default function Profil() {
   const [savingRickshaw, setSavingRickshaw] = useState(false)
   const [rickshawMessage, setRickshawMessage] = useState<string | null>(null)
 
+  // Profile edit state
+  const [editFirstName, setEditFirstName] = useState('')
+  const [editFamilyName, setEditFamilyName] = useState('')
+  const [savingProfile, setSavingProfile] = useState(false)
+  const [profileMessage, setProfileMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  // Password change state
+  const [oldPassword, setOldPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [newPasswordConfirm, setNewPasswordConfirm] = useState('')
+  const [savingPassword, setSavingPassword] = useState(false)
+  const [passwordMessage, setPasswordMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
   const selectedRideId = searchParams.get('ride')
   const selectedRide = completedRides.find(r => r.id === selectedRideId) ?? null
   const [showAllRides, setShowAllRides] = useState(false)
@@ -110,6 +123,51 @@ export default function Profil() {
     const col = profile.role === 'driver' ? 'driver_id' : 'guest_id'
     dbService.getCompletedRides(user.id, col).then(data => setCompletedRides(data))
   }, [user, profile])
+
+  useEffect(() => {
+    if (profile) {
+      setEditFirstName(profile.first_name ?? '')
+      setEditFamilyName(profile.family_name ?? '')
+    }
+  }, [profile])
+
+  const handleSaveProfile = async () => {
+    if (!user || !profile) return
+    setSavingProfile(true)
+    setProfileMessage(null)
+    const { error: err } = await dbService.updateUserProfile(user.id, editFirstName.trim(), editFamilyName.trim())
+    if (err) {
+      setProfileMessage({ type: 'error', text: err.message })
+    } else {
+      setProfile({ ...profile, first_name: editFirstName.trim(), family_name: editFamilyName.trim() })
+      setProfileMessage({ type: 'success', text: 'Profil erfolgreich gespeichert!' })
+    }
+    setSavingProfile(false)
+  }
+
+  const handleChangePassword = async () => {
+    if (!newPassword || !oldPassword) return
+    if (newPassword !== newPasswordConfirm) {
+      setPasswordMessage({ type: 'error', text: 'Die neuen Passwörter stimmen nicht überein.' })
+      return
+    }
+    if (newPassword.length < 6) {
+      setPasswordMessage({ type: 'error', text: 'Das neue Passwort muss mindestens 6 Zeichen lang sein.' })
+      return
+    }
+    setSavingPassword(true)
+    setPasswordMessage(null)
+    const { error: err } = await authService.updatePassword(oldPassword, newPassword)
+    if (err) {
+      setPasswordMessage({ type: 'error', text: err })
+    } else {
+      setPasswordMessage({ type: 'success', text: 'Passwort erfolgreich geändert!' })
+      setOldPassword('')
+      setNewPassword('')
+      setNewPasswordConfirm('')
+    }
+    setSavingPassword(false)
+  }
 
   const initials = profile
     ? `${profile.first_name?.[0] ?? ''}${profile.family_name?.[0] ?? ''}`.toUpperCase()
@@ -234,6 +292,92 @@ export default function Profil() {
             )}
 
             <RideCta userId={user?.id ?? ''} role={userRole} />
+          </div>
+
+          {/* ─── Profil bearbeiten ─────────────────────── */}
+          <div className="profil-edit">
+            <h2 className="profil-edit__title">Profil bearbeiten</h2>
+            <div className="profil-edit__form">
+              <label className="profil-edit__label">
+                Vorname
+                <input
+                  className="profil-edit__input"
+                  type="text"
+                  value={editFirstName}
+                  onChange={e => setEditFirstName(e.target.value)}
+                />
+              </label>
+              <label className="profil-edit__label">
+                Nachname
+                <input
+                  className="profil-edit__input"
+                  type="text"
+                  value={editFamilyName}
+                  onChange={e => setEditFamilyName(e.target.value)}
+                />
+              </label>
+              <button
+                className="profil-edit__btn"
+                onClick={handleSaveProfile}
+                disabled={savingProfile}
+              >
+                {savingProfile ? 'Speichern…' : 'Speichern'}
+              </button>
+              {profileMessage && (
+                <div className={`profil-edit__msg profil-edit__msg--${profileMessage.type}`}>
+                  {profileMessage.text}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ─── Passwort ändern ───────────────────────── */}
+          <div className="profil-edit profil-edit--password">
+            <h2 className="profil-edit__title">Passwort ändern</h2>
+            <div className="profil-edit__form">
+              <label className="profil-edit__label">
+                Altes Passwort
+                <input
+                  className="profil-edit__input"
+                  type="password"
+                  value={oldPassword}
+                  onChange={e => setOldPassword(e.target.value)}
+                  autoComplete="current-password"
+                />
+              </label>
+              <label className="profil-edit__label">
+                Neues Passwort
+                <input
+                  className="profil-edit__input"
+                  type="password"
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                  autoComplete="new-password"
+                />
+              </label>
+              <label className="profil-edit__label">
+                Neues Passwort bestätigen
+                <input
+                  className="profil-edit__input"
+                  type="password"
+                  value={newPasswordConfirm}
+                  onChange={e => setNewPasswordConfirm(e.target.value)}
+                  autoComplete="new-password"
+                />
+              </label>
+              <button
+                className="profil-edit__btn"
+                onClick={handleChangePassword}
+                disabled={savingPassword || !oldPassword || !newPassword || !newPasswordConfirm}
+              >
+                {savingPassword ? 'Ändern…' : 'Passwort ändern'}
+              </button>
+              {passwordMessage && (
+                <div className={`profil-edit__msg profil-edit__msg--${passwordMessage.type}`}>
+                  {passwordMessage.text}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="profil-rides">

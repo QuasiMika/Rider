@@ -36,6 +36,14 @@ export const supabaseDbService: DbService = {
     return { error: error ? { message: error.message } : null }
   },
 
+  async updateUserProfile(userId, firstName, familyName) {
+    const { error } = await supabase
+      .from('user_profile')
+      .update({ first_name: firstName, family_name: familyName })
+      .eq('user_id', userId)
+    return { error: error ? { message: error.message } : null }
+  },
+
   async getRickshawTypes() {
     const { data } = await supabase.rpc('get_rickshaw_types')
     return (data ?? []) as RickshawType[]

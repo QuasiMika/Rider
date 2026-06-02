@@ -67,6 +67,7 @@ export interface DbService {
   // user_profile
   getUserProfile(userId: string): Promise<{ data: UserProfile | null; error: ServiceError | null }>
   getUserProfiles(userIds: string[]): Promise<UserProfileBasic[]>
+  updateUserProfile(userId: string, firstName: string, familyName: string): Promise<{ error: ServiceError | null }>
   updateDriverRickshawType(userId: string, rickshawTypeId: string): Promise<{ error: ServiceError | null }>
 
   // rickshaw_types

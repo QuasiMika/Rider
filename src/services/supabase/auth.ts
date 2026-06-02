@@ -46,4 +46,19 @@ export const supabaseAuthService: AuthService = {
   async signOut() {
     await supabase.auth.signOut()
   },
+
+  async updatePassword(currentPassword, newPassword) {
+    // Verify old password by attempting a sign-in with current session email
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session?.user?.email) return { error: 'Nicht eingeloggt' }
+
+    const { error: verifyError } = await supabase.auth.signInWithPassword({
+      email: session.user.email,
+      password: currentPassword,
+    })
+    if (verifyError) return { error: 'Altes Passwort ist falsch' }
+
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+    return { error: error?.message ?? null }
+  },
 }
