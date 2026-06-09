@@ -95,7 +95,7 @@ export function DriverPanel() {
   const activeRide = status === 'matched' && currentRide?.status !== 'completed' ? currentRide : null
 
   if (completedRide) return <DriverRideCompleted ride={completedRide} onReset={handleReset} />
-  if (activeRide) return <DriverRideActive ride={activeRide} />
+  if (activeRide) return <DriverRideActive ride={activeRide} currentUserId={user?.id ?? ''} />
 
   if (isWorking === false) {
     return (

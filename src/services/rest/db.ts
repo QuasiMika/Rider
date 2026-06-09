@@ -315,4 +315,24 @@ export const restDbService: DbService = {
       return { error: toError(e) }
     }
   },
+
+  async getChatMessages(rideId) {
+    try {
+      return await apiFetch(`/rides/${rideId}/messages`)
+    } catch {
+      return []
+    }
+  },
+
+  async sendChatMessage(rideId, content) {
+    try {
+      await apiFetch(`/rides/${rideId}/messages`, {
+        method: 'POST',
+        body: JSON.stringify({ content }),
+      })
+      return { error: null }
+    } catch (e) {
+      return { error: toError(e) }
+    }
+  },
 }

@@ -1,5 +1,5 @@
 import { supabase } from './client'
-import type { DbService, UserProfile, UserProfileBasic, GuestRequestRow, ReportRow, ServiceError, RickshawType } from '../types/db'
+import type { DbService, UserProfile, UserProfileBasic, GuestRequestRow, ReportRow, ServiceError, RickshawType, RideMessage } from '../types/db'
 import type { Ride } from '../../types/ride'
 
 function toError(e: unknown): ServiceError {
@@ -256,6 +256,24 @@ export const supabaseDbService: DbService = {
 
   async setDriverWorking(userId, working) {
     const { error } = await supabase.rpc('set_driver_working', { p_driver_id: userId, p_working: working })
+    return { error: error ? { message: error.message } : null }
+  },
+
+  async getChatMessages(rideId) {
+    const { data } = await supabase
+      .from('ride_messages')
+      .select('id, ride_id, sender_id, content, created_at')
+      .eq('ride_id', rideId)
+      .order('created_at', { ascending: true })
+    return (data ?? []) as RideMessage[]
+  },
+
+  async sendChatMessage(rideId, content) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: { message: 'Nicht angemeldet' } }
+    const { error } = await supabase
+      .from('ride_messages')
+      .insert({ ride_id: rideId, sender_id: user.id, content })
     return { error: error ? { message: error.message } : null }
   },
 }

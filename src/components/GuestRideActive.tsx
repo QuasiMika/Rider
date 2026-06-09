@@ -3,22 +3,27 @@ import { dbService, realtimeService } from '../services'
 import type { DriverLocationPayload } from '../services'
 import { formatDuration } from '../utils/routing'
 import { useResolvedNames } from '../hooks/useResolvedNames'
+import { useChatMessages } from '../hooks/useChatMessages'
 import { RideMap } from './RideMap'
+import { ChatButton } from './ChatButton'
+import { ChatDrawer } from './ChatDrawer'
 import type { Ride } from '../types/ride'
 
 type PartnerProfile = { first_name: string | null; family_name: string | null }
 
 type Props = {
   ride: Ride
+  currentUserId: string
 }
 
-export function GuestRideActive({ ride }: Props) {
+export function GuestRideActive({ ride, currentUserId }: Props) {
   const [driver, setDriver] = useState<PartnerProfile | null>(null)
   const [driverPosition, setDriverPosition] = useState<[number, number] | null>(null)
   const [etaSeconds, setEtaSeconds] = useState<number | null>(null)
   const [approachPolyline, setApproachPolyline] = useState<[number, number][] | null>(null)
 
   const { pickupName, destName } = useResolvedNames(ride.id, ride.pickup_location, ride.destination)
+  const { messages, unreadCount, isOpen, openChat, closeChat, sendMessage } = useChatMessages(ride.id, currentUserId)
 
   useEffect(() => {
     if (!ride.driver_id) return
@@ -56,6 +61,16 @@ export function GuestRideActive({ ride }: Props) {
 
   return (
     <div className="rm-ride-active">
+      {isOpen && (
+        <div className="chat-overlay" onClick={closeChat}>
+          <ChatDrawer
+            messages={messages}
+            currentUserId={currentUserId}
+            onClose={closeChat}
+            onSend={sendMessage}
+          />
+        </div>
+      )}
       <div className="rm-ride-active__body">
         <div className="rm-ride-active__info">
           <div className="rm-partner">
@@ -65,6 +80,10 @@ export function GuestRideActive({ ride }: Props) {
               <div className="rm-partner__name">{driverName}</div>
               <div className="rm-partner__status">{statusText}</div>
             </div>
+          </div>
+          <div className="rm-chat-row">
+            <ChatButton unreadCount={unreadCount} onClick={openChat} />
+            <span className="rm-chat-row__label">Fahrer kontaktieren</span>
           </div>
 
           {(ride.pickup_location || ride.destination) && (
