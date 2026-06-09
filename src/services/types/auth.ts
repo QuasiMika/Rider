@@ -14,7 +14,7 @@ export type Unsubscribe = () => void
 
 export interface AuthService {
   getSession(): Promise<AuthSession | null>
-  onAuthStateChange(callback: (session: AuthSession | null) => void): Unsubscribe
+  onAuthStateChange(callback: (session: AuthSession | null, event?: string) => void): Unsubscribe
   signIn(email: string, password: string): Promise<{ error: string | null }>
   signUp(
     email: string,
@@ -26,4 +26,6 @@ export interface AuthService {
   ): Promise<{ error: string | null }>
   signOut(): Promise<void>
   updatePassword(currentPassword: string, newPassword: string): Promise<{ error: string | null }>
+  resetPasswordEmail(email: string): Promise<{ error: string | null }>
+  updatePasswordReset(newPassword: string): Promise<{ error: string | null }>
 }

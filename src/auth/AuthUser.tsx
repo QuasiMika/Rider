@@ -8,6 +8,7 @@ type AuthContextType = {
   loading: boolean
   // true, wenn das initiale Laden der Nutzerdaten fehlschlägt (z. B. 503 vom Backend)
   backendError: boolean
+  isPasswordRecovery: boolean
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
   signUp: (
     email: string,
@@ -18,6 +19,8 @@ type AuthContextType = {
     rickshawTypeId?: string | null,
   ) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
+  resetPasswordEmail: (email: string) => Promise<{ error: string | null }>
+  updatePasswordReset: (newPassword: string) => Promise<{ error: string | null }>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -27,6 +30,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<AuthSession | null>(null)
   const [loading, setLoading] = useState(true)
   const [backendError, setBackendError] = useState(false)
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false)
 
   useEffect(() => {
     authService.getSession().then((s) => {
@@ -35,9 +39,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false)
     })
 
-    const unsubscribe = authService.onAuthStateChange((s) => {
+    const unsubscribe = authService.onAuthStateChange((s, event) => {
       setSession(s)
       setUser(s?.user ?? null)
+      if (event === 'PASSWORD_RECOVERY') setIsPasswordRecovery(true)
+      if (event === 'USER_UPDATED') setIsPasswordRecovery(false)
     })
 
     return unsubscribe
@@ -61,9 +67,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         session,
         loading,
         backendError,
+        isPasswordRecovery,
         signIn: authService.signIn.bind(authService),
         signUp: authService.signUp.bind(authService),
         signOut: authService.signOut.bind(authService),
+        resetPasswordEmail: authService.resetPasswordEmail.bind(authService),
+        updatePasswordReset: authService.updatePasswordReset.bind(authService),
       }}
     >
       {children}

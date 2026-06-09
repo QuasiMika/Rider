@@ -13,13 +13,13 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import './Login.css'
 
-type Mode = 'login' | 'register'
+type Mode = 'login' | 'register' | 'forgot-password'
 type Role = 'customer' | 'driver'
 
 interface Props { initialMode?: Mode }
 
 export default function AuthPage({ initialMode = 'login' }: Props) {
-  const { signIn, signUp, user } = useAuth()
+  const { signIn, signUp, user, resetPasswordEmail } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const from = (location.state as { from?: Location })?.from?.pathname ?? '/'
@@ -39,6 +39,7 @@ export default function AuthPage({ initialMode = 'login' }: Props) {
 
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [resetSent, setResetSent] = useState(false)
 
   useEffect(() => {
     if (user) navigate(from, { replace: true })
@@ -58,6 +59,7 @@ export default function AuthPage({ initialMode = 'login' }: Props) {
   // reset form + error when switching mode
   const switchMode = (next: Mode) => {
     setError(null)
+    setResetSent(false)
     setEmail('')
     setPassword('')
     setFirstName('')
@@ -70,6 +72,13 @@ export default function AuthPage({ initialMode = 'login' }: Props) {
     e.preventDefault()
     setError(null)
     setLoading(true)
+
+    if (mode === 'forgot-password') {
+      const { error } = await resetPasswordEmail(email)
+      setLoading(false)
+      if (error) { setError(error) } else { setResetSent(true) }
+      return
+    }
 
     if (mode === 'login') {
       const { error } = await signIn(email, password)
@@ -129,16 +138,26 @@ export default function AuthPage({ initialMode = 'login' }: Props) {
 
           {/* Desktop heading + switch link */}
           <h1 className="login__heading">
-            {mode === 'login' ? 'Anmelden' : 'Registrieren'}
+            {mode === 'login' ? 'Anmelden' : mode === 'register' ? 'Registrieren' : 'Passwort zurücksetzen'}
           </h1>
           <p className="login__sub">
             {mode === 'login' ? (
               <>Noch kein Konto? <button className="login__switch" onClick={() => switchMode('register')}>Jetzt registrieren</button></>
-            ) : (
+            ) : mode === 'register' ? (
               <>Bereits ein Konto? <button className="login__switch" onClick={() => switchMode('login')}>Anmelden</button></>
+            ) : (
+              <>Zurück zur <button className="login__switch" onClick={() => switchMode('login')}>Anmeldung</button></>
             )}
           </p>
 
+          {mode === 'forgot-password' && resetSent && (
+            <div className="login__reset-success">
+              <p>✉️ E-Mail gesendet! Bitte prüfe deinen Posteingang und klicke auf den Link zum Zurücksetzen.</p>
+              <button className="login__switch" onClick={() => switchMode('login')}>Zurück zur Anmeldung</button>
+            </div>
+          )}
+
+          {!(mode === 'forgot-password' && resetSent) && (
           <form onSubmit={handleSubmit} className="login__form" key={mode}>
             {mode === 'register' && (
               <div className="login__row">
@@ -170,15 +189,22 @@ export default function AuthPage({ initialMode = 'login' }: Props) {
               </div>
             </div>
 
-            <div className="login__field">
-              <label className="login__label">Passwort</label>
-              <div className="login__input-wrap">
-                <FontAwesomeIcon icon={faLock} className="login__input-icon" />
-                <input type="password" value={password} onChange={e => setPassword(e.target.value)}
-                  required autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-                  className="login__input" placeholder={mode === 'register' ? 'Mindestens 6 Zeichen' : '••••••••'} />
+            {mode !== 'forgot-password' && (
+              <div className="login__field">
+                <label className="login__label">Passwort</label>
+                <div className="login__input-wrap">
+                  <FontAwesomeIcon icon={faLock} className="login__input-icon" />
+                  <input type="password" value={password} onChange={e => setPassword(e.target.value)}
+                    required autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                    className="login__input" placeholder={mode === 'register' ? 'Mindestens 6 Zeichen' : '••••••••'} />
+                </div>
+                {mode === 'login' && (
+                  <button type="button" className="login__forgot" onClick={() => switchMode('forgot-password')}>
+                    Passwort vergessen?
+                  </button>
+                )}
               </div>
-            </div>
+            )}
 
             {mode === 'register' && (
               <div className="login__field">
@@ -219,10 +245,11 @@ export default function AuthPage({ initialMode = 'login' }: Props) {
 
             <button type="submit" disabled={loading} className="login__btn">
               {loading
-                ? (mode === 'login' ? 'Wird angemeldet...' : 'Wird registriert...')
-                : (mode === 'login' ? 'Anmelden' : 'Konto erstellen')}
+                ? (mode === 'login' ? 'Wird angemeldet...' : mode === 'register' ? 'Wird registriert...' : 'Wird gesendet...')
+                : (mode === 'login' ? 'Anmelden' : mode === 'register' ? 'Konto erstellen' : 'Link senden')}
             </button>
           </form>
+          )}
         </div>
       </div>
     </div>

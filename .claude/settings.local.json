@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "WebFetch(domain:supabase.com)",
+      "mcp__claude_ai_Supabase__list_organizations"
     ]
   }
 }
