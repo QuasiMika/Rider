@@ -12,11 +12,12 @@ export const supabaseAuthService: AuthService = {
   },
 
   onAuthStateChange(callback) {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       callback(
         session
           ? { access_token: session.access_token, user: { id: session.user.id, email: session.user.email } }
           : null,
+        event,
       )
     })
     return () => subscription.unsubscribe()
@@ -45,6 +46,19 @@ export const supabaseAuthService: AuthService = {
 
   async signOut() {
     await supabase.auth.signOut()
+  },
+
+  async resetPasswordEmail(email) {
+    const baseUrl = window.location.href.split('#')[0]
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: baseUrl,
+    })
+    return { error: error?.message ?? null }
+  },
+
+  async updatePasswordReset(newPassword) {
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+    return { error: error?.message ?? null }
   },
 
   async updatePassword(currentPassword, newPassword) {

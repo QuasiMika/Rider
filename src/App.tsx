@@ -1,4 +1,5 @@
-import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { HashRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { useEffect } from 'react'
 import { AuthProvider, useAuth } from './auth/AuthUser'
 import { AppLayout } from './components/AppLayout'
 import { MaintenanceScreen } from './components/MaintenanceScreen'
@@ -13,6 +14,16 @@ import Impressum from './pages/Impressum'
 import ReportDetail from './pages/ReportDetail'
 import Einnahmen from './pages/Einnahmen'
 import Admin from './pages/Admin'
+import ResetPassword from './pages/ResetPassword'
+
+function AuthHandler() {
+  const { isPasswordRecovery } = useAuth()
+  const navigate = useNavigate()
+  useEffect(() => {
+    if (isPasswordRecovery) navigate('/reset-password', { replace: true })
+  }, [isPasswordRecovery, navigate])
+  return null
+}
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -35,11 +46,13 @@ export default function App() {
     <AuthProvider>
       <BackendGate>
         <HashRouter>
+          <AuthHandler />
           <Routes>
             <Route element={<AppLayout />}>
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/help" element={<Help />} />
               <Route path="/impressum" element={<Impressum />} />
               <Route path="/profil" element={<ProtectedRoute><Profil /></ProtectedRoute>} />
