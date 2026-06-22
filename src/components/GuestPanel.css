@@ -15,6 +15,20 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
+.guest-timeout-notice {
+  width: 100%;
+  margin: 0 0 1rem;
+  padding: 0.9rem 1rem;
+  border-radius: 14px;
+  background: rgba(251, 191, 36, 0.14);
+  border: 1px solid rgba(217, 119, 6, 0.28);
+  color: var(--text-h);
+  font-size: 14px;
+  line-height: 1.45;
+  text-align: center;
+  animation: banner-in 0.3s ease;
+}
+
 /* ─── Radar (searching) ──────────────────────────────────── */
 .guest-radar {
   position: relative;
@@ -56,6 +70,97 @@
 @keyframes radar-expand {
   0%   { width: 0;    height: 0;    opacity: 0.9; }
   100% { width: 90px; height: 90px; opacity: 0;   }
+}
+
+/* ─── Route summary while searching ─────────────────────── */
+.guest-search-summary {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1rem 1.1rem;
+  text-align: left;
+}
+
+.guest-search-summary__route {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.guest-search-summary__stop {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.guest-search-summary__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-top: 0.35rem;
+  flex-shrink: 0;
+}
+
+.guest-search-summary__dot--from { background: var(--accent); }
+.guest-search-summary__dot--to   { background: #dc2626; }
+
+.guest-search-summary__line {
+  width: 2px;
+  height: 14px;
+  background: var(--border);
+  margin-left: 4px;
+}
+
+.guest-search-summary__label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text);
+  margin-bottom: 0.15rem;
+}
+
+.guest-search-summary__value {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-h);
+  line-height: 1.35;
+}
+
+.guest-search-summary__meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border);
+  font-size: 14px;
+  color: var(--text);
+}
+
+.guest-search-summary__meta-item {
+  font-weight: 500;
+}
+
+.guest-search-summary__meta-sep {
+  color: var(--border);
+}
+
+.guest-search-summary__meta-loading {
+  font-size: 13px;
+  color: var(--text);
+}
+
+.guest-search-summary__price {
+  margin-top: 0.65rem;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent);
+  text-align: center;
 }
 
 /* ─── Arriving animation (pending) ──────────────────────── */

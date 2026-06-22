@@ -125,7 +125,7 @@ export const restDbService: DbService = {
   // Called only from GuestPanel (role=customer) — server returns { id } | null for guests
   async getWaitingGuestRequest(_guestId) {
     try {
-      return await apiFetch<{ id: string } | null>('/guest-requests')
+      return await apiFetch<GuestRequestRow | null>('/guest-requests')
     } catch {
       return null
     }
@@ -155,6 +155,15 @@ export const restDbService: DbService = {
   async deleteWaitingGuestRequest(_guestId) {
     try {
       await apiFetch('/guest-requests', { method: 'DELETE' })
+      return { error: null }
+    } catch (e) {
+      return { error: toError(e) }
+    }
+  },
+
+  async expireWaitingGuestRequest(_guestId) {
+    try {
+      await apiFetch('/guest-requests/expire', { method: 'POST' })
       return { error: null }
     } catch (e) {
       return { error: toError(e) }

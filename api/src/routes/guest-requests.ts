@@ -26,7 +26,11 @@ router.get('/', requireAuth, async (req, res: Response) => {
   }
 
   const { rows } = await pool.query(
-    `SELECT id FROM guest_requests WHERE guest_id = $1 AND status = 'waiting' LIMIT 1`,
+    `SELECT id, guest_id, created_at, pickup_location, destination, price_eur,
+            passenger_count, rickshaw_type_id, rickshaw_price_multiplier, rickshaw_price_per_km
+       FROM guest_requests
+      WHERE guest_id = $1 AND status = 'waiting'
+      LIMIT 1`,
     [userId],
   )
   res.json(rows[0] ?? null)
@@ -102,6 +106,18 @@ router.delete('/', requireAuth, async (req, res: Response) => {
     `DELETE FROM guest_requests WHERE guest_id = $1 AND status = 'waiting'`,
     [guestId],
   )
+  res.json({ ok: true })
+})
+
+// POST /guest-requests/expire — marks own waiting request as expired (search timeout)
+router.post('/expire', requireAuth, async (req, res: Response) => {
+  const guestId = (req as AuthRequest).userId
+  const { rowCount } = await pool.query(
+    `UPDATE guest_requests SET status = 'expired'
+      WHERE guest_id = $1 AND status = 'waiting'`,
+    [guestId],
+  )
+  if (!rowCount) return res.status(404).json({ message: 'No waiting request' })
   res.json({ ok: true })
 })
 
