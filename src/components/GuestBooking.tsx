@@ -25,10 +25,11 @@ type Props = {
   onlineDrivers: number | null
   isLoading: boolean
   error: string | null
+  timeoutNotice?: string | null
   onRequest: (pickup: string, destination: string, passengerCount: number, rickshawTypeId?: string | null) => Promise<void>
 }
 
-export function GuestBooking({ onlineDrivers, isLoading, error, onRequest }: Props) {
+export function GuestBooking({ onlineDrivers, isLoading, error, timeoutNotice, onRequest }: Props) {
   const [pickupDisplay, setPickupDisplay] = useState('')
   const [destDisplay, setDestDisplay] = useState('')
   const [pickupCoords, setPickupCoords] = useState<string | null>(null)
@@ -148,6 +149,9 @@ export function GuestBooking({ onlineDrivers, isLoading, error, onRequest }: Pro
 
   return (
     <div className="guest-idle">
+      {timeoutNotice && (
+        <p className="guest-timeout-notice" role="status">{timeoutNotice}</p>
+      )}
       <div className="guest-idle__visual">🛺</div>
 
       <div className="guest-idle__heading">

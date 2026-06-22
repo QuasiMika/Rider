@@ -100,6 +100,7 @@ export interface DbService {
     passengerCount: number,
   ): Promise<{ error: ServiceError | null }>
   deleteWaitingGuestRequest(guestId: string): Promise<{ error: ServiceError | null }>
+  expireWaitingGuestRequest(guestId: string): Promise<{ error: ServiceError | null }>
 
   // driver_availability
   getDriverAvailability(driverId: string): Promise<{ id: string } | null>

@@ -109,4 +109,16 @@ router.delete('/', requireAuth, async (req, res: Response) => {
   res.json({ ok: true })
 })
 
+// POST /guest-requests/expire — marks own waiting request as expired (search timeout)
+router.post('/expire', requireAuth, async (req, res: Response) => {
+  const guestId = (req as AuthRequest).userId
+  const { rowCount } = await pool.query(
+    `UPDATE guest_requests SET status = 'expired'
+      WHERE guest_id = $1 AND status = 'waiting'`,
+    [guestId],
+  )
+  if (!rowCount) return res.status(404).json({ message: 'No waiting request' })
+  res.json({ ok: true })
+})
+
 export default router

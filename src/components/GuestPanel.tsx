@@ -12,7 +12,7 @@ import './GuestPanel.css'
 
 export function GuestPanel() {
   const { user } = useAuth()
-  const { requestRide, cancelRequest, resetToIdle, currentRide, pendingRequest, status, isLoading, error } = useRideMatching(
+  const { requestRide, cancelRequest, resetToIdle, currentRide, pendingRequest, searchTimeoutMessage, status, isLoading, error } = useRideMatching(
     user?.id ?? '',
     'guest'
   )
@@ -77,7 +77,13 @@ export function GuestPanel() {
             priceEur={pendingRequest?.price_eur ?? null}
             onCancel={cancelRequest}
           />
-        : <GuestBooking onlineDrivers={onlineDrivers} isLoading={isLoading} error={error} onRequest={requestRide} />
+        : <GuestBooking
+            onlineDrivers={onlineDrivers}
+            isLoading={isLoading}
+            error={error}
+            timeoutNotice={searchTimeoutMessage}
+            onRequest={requestRide}
+          />
       }
     </>
   )

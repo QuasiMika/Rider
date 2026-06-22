@@ -161,6 +161,15 @@ export const restDbService: DbService = {
     }
   },
 
+  async expireWaitingGuestRequest(_guestId) {
+    try {
+      await apiFetch('/guest-requests/expire', { method: 'POST' })
+      return { error: null }
+    } catch (e) {
+      return { error: toError(e) }
+    }
+  },
+
   async getDriverAvailability(driverId) {
     try {
       return await apiFetch<{ id: string } | null>(`/driver-availability/${driverId}`)

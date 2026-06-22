@@ -142,6 +142,15 @@ export const supabaseDbService: DbService = {
     return { error: error ? { message: error.message } : null }
   },
 
+  async expireWaitingGuestRequest(guestId) {
+    const { error } = await supabase
+      .from('guest_requests')
+      .update({ status: 'expired' })
+      .eq('guest_id', guestId)
+      .eq('status', 'waiting')
+    return { error: error ? { message: error.message } : null }
+  },
+
   async getDriverAvailability(driverId) {
     const { data } = await supabase
       .from('driver_availability')
