@@ -3,7 +3,11 @@
     "allow": [
       "Bash(npx tsc *)",
       "WebFetch(domain:supabase.com)",
-      "mcp__claude_ai_Supabase__list_organizations"
+      "mcp__claude_ai_Supabase__list_organizations",
+      "Bash(node_modules/.bin/tsc --noEmit)",
+      "Bash(npm run *)",
+      "Bash(ls -la .env*)",
+      "Bash(ls supabase/)"
     ]
   }
 }

@@ -63,6 +63,14 @@ export type ReportRow = {
   created_at: string
 }
 
+export type RideMessage = {
+  id: string
+  ride_id: string
+  sender_id: string
+  content: string
+  created_at: string
+}
+
 export interface DbService {
   // user_profile
   getUserProfile(userId: string): Promise<{ data: UserProfile | null; error: ServiceError | null }>
@@ -117,6 +125,10 @@ export interface DbService {
     reporterId: string,
     notes: string | null,
   ): Promise<{ error: ServiceError | null }>
+
+  // ride_messages
+  getChatMessages(rideId: string): Promise<RideMessage[]>
+  sendChatMessage(rideId: string, content: string): Promise<{ error: ServiceError | null }>
 
   // RPCs
   confirmPickup(rideId: string): Promise<void>

@@ -1,5 +1,5 @@
 import type { Ride } from '../../types/ride'
-import type { GuestRequestRow } from './db'
+import type { GuestRequestRow, RideMessage } from './db'
 
 export type DriverLocationPayload = {
   lat: number
@@ -50,6 +50,11 @@ export interface RealtimeService {
   ): () => void
 
   createLocationBroadcast(rideId: string): LocationBroadcast
+
+  subscribeChatMessages(
+    rideId: string,
+    onInsert: (message: RideMessage) => void,
+  ): () => void
 }
 
 export interface PresenceService {

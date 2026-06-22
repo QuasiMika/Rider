@@ -1,6 +1,6 @@
 import { supabase } from './client'
 import type { RealtimeService, DriverLocationPayload, LocationBroadcast } from '../types/realtime'
-import type { GuestRequestRow } from '../types/db'
+import type { GuestRequestRow, RideMessage } from '../types/db'
 import type { Ride } from '../../types/ride'
 
 export const supabaseRealtimeService: RealtimeService = {
@@ -101,5 +101,17 @@ export const supabaseRealtimeService: RealtimeService = {
       },
       close() { supabase.removeChannel(channel) },
     }
+  },
+
+  subscribeChatMessages(rideId, onInsert) {
+    const channel = supabase
+      .channel(`ride-chat:${rideId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'ride_messages', filter: `ride_id=eq.${rideId}` },
+        (payload) => onInsert(payload.new as RideMessage),
+      )
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
   },
 }

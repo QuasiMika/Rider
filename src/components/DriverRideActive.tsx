@@ -4,7 +4,10 @@ import { faLocationDot, faRoute } from '@fortawesome/free-solid-svg-icons'
 import { dbService } from '../services'
 import { useDriverLocation } from '../hooks/useDriverLocation'
 import { useResolvedNames } from '../hooks/useResolvedNames'
+import { useChatMessages } from '../hooks/useChatMessages'
 import { RideMap } from './RideMap'
+import { ChatButton } from './ChatButton'
+import { ChatDrawer } from './ChatDrawer'
 import type { Ride } from '../types/ride'
 
 type PartnerProfile = { first_name: string | null; family_name: string | null }
@@ -20,9 +23,9 @@ function openMapsToLocation(location: string) {
   window.open(url, '_blank')
 }
 
-type Props = { ride: Ride }
+type Props = { ride: Ride; currentUserId: string }
 
-export function DriverRideActive({ ride }: Props) {
+export function DriverRideActive({ ride, currentUserId }: Props) {
   const [guest, setGuest] = useState<PartnerProfile | null>(null)
   const [completeSlider, setCompleteSlider] = useState(0)
   const [completing, setCompleting] = useState(false)
@@ -32,6 +35,7 @@ export function DriverRideActive({ ride }: Props) {
 
   const { driverPosition, approachPolyline } = useDriverLocation(ride.id, ride.pickup_location ?? undefined)
   const { pickupName, destName } = useResolvedNames(ride.id, ride.pickup_location, ride.destination)
+  const { messages, unreadCount, isOpen, openChat, closeChat, sendMessage } = useChatMessages(ride.id, currentUserId)
 
   useEffect(() => {
     if (!ride.guest_id) return
@@ -70,6 +74,16 @@ export function DriverRideActive({ ride }: Props) {
 
   return (
     <div className="rm-ride-active">
+      {isOpen && (
+        <div className="chat-overlay" onClick={closeChat}>
+          <ChatDrawer
+            messages={messages}
+            currentUserId={currentUserId}
+            onClose={closeChat}
+            onSend={sendMessage}
+          />
+        </div>
+      )}
       <div className="rm-ride-active__body">
         <div className="rm-ride-active__info">
           <div className="rm-partner">
@@ -78,6 +92,10 @@ export function DriverRideActive({ ride }: Props) {
               <div className="rm-partner__label">Dein Gast</div>
               <div className="rm-partner__name">{guestName}</div>
             </div>
+          </div>
+          <div className="rm-chat-row">
+            <ChatButton unreadCount={unreadCount} onClick={openChat} />
+            <span className="rm-chat-row__label">Gast kontaktieren</span>
           </div>
 
           {(ride.pickup_location || ride.destination) && (
