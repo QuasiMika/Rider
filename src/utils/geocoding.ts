@@ -1,5 +1,10 @@
 export type LatLng = [number, number]
 
+export type AddressSuggestion = {
+  displayName: string
+  coords: LatLng
+}
+
 const cache = new Map<string, LatLng | null>()
 
 // Nominatim allows 1 req/s — serialize all requests through this queue.
@@ -17,6 +22,9 @@ export function enqueue<T>(fn: () => Promise<T>): Promise<T> {
 const NOMINATIM = import.meta.env.DEV
   ? '/nominatim'
   : 'https://nominatim.openstreetmap.org'
+
+// Bounding box for Konstanz and surrounding area
+const KONSTANZ_VIEWBOX = '9.00,47.82,9.45,47.57'
 
 const COORD_RE = /^-?\d+\.?\d*\s*,\s*-?\d+\.?\d*$/
 
@@ -42,5 +50,23 @@ export async function geocode(query: string, signal?: AbortSignal): Promise<LatL
       : null
     cache.set(query, result)
     return result
+  })
+}
+
+export async function searchAddresses(
+  query: string,
+  signal?: AbortSignal,
+): Promise<AddressSuggestion[]> {
+  if (!query.trim() || query.trim().length < 2) return []
+  return enqueue(async () => {
+    if (signal?.aborted) return []
+    const url = `${NOMINATIM}/search?q=${encodeURIComponent(query)}&format=json&limit=5&accept-language=de&viewbox=${KONSTANZ_VIEWBOX}&bounded=1`
+    const res = await fetch(url, signal ? { signal } : undefined)
+    if (!res.ok) return []
+    const data = await res.json()
+    return (data as { display_name: string; lat: string; lon: string }[]).map(item => ({
+      displayName: item.display_name,
+      coords: [parseFloat(item.lat), parseFloat(item.lon)] as LatLng,
+    }))
   })
 }

@@ -7,7 +7,9 @@
       "Bash(node_modules/.bin/tsc --noEmit)",
       "Bash(npm run *)",
       "Bash(ls -la .env*)",
-      "Bash(ls supabase/)"
+      "Bash(ls supabase/)",
+      "PowerShell(cd \"c:\\\\Users\\\\timon\\\\Rider\"; Start-Process -NoNewWindow -FilePath \"npm\" -ArgumentList \"run\",\"dev\" -RedirectStandardOutput \"$env:TEMP\\\\vite-out.txt\" -RedirectStandardError \"$env:TEMP\\\\vite-err.txt\"; Start-Sleep 4; Get-Content \"$env:TEMP\\\\vite-out.txt\",\"$env:TEMP\\\\vite-err.txt\" -ErrorAction SilentlyContinue)",
+      "PowerShell(cd \"c:\\\\Users\\\\timon\\\\Rider\"; $proc = Start-Process -NoNewWindow -FilePath \"node\" -ArgumentList \"$env:APPDATA\\\\npm\\\\node_modules\\\\vite\\\\bin\\\\vite.js\" -PassThru; Start-Sleep 4; $proc.HasExited)"
     ]
   }
 }

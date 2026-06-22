@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import { geocode } from '../utils/geocoding'
+import type { LatLng } from '../utils/geocoding'
 import { reverseGeocoder } from '../utils/reverseGeocoding'
+import { AddressInput } from './AddressInput'
 import { estimateFare, type FareEstimate } from '../utils/fareEstimate'
 import { formatDuration, formatDistance } from '../utils/routing'
 import { dbService, realtimeService } from '../services'
@@ -32,6 +33,8 @@ export function GuestBooking({ onlineDrivers, isLoading, error, onRequest }: Pro
   const [pickupDisplay, setPickupDisplay] = useState('')
   const [destDisplay, setDestDisplay] = useState('')
   const [pickupCoords, setPickupCoords] = useState<string | null>(null)
+  const [pickupConfirmed, setPickupConfirmed] = useState(false)
+  const [destConfirmed, setDestConfirmed] = useState(false)
   const [locating, setLocating] = useState(false)
   const [locateError, setLocateError] = useState<string | null>(null)
   const [geocodeError, setGeocodeError] = useState<string | null>(null)
@@ -87,6 +90,7 @@ export function GuestBooking({ onlineDrivers, isLoading, error, onRequest }: Pro
         const coordStr = `${coords.latitude}, ${coords.longitude}`
         setPickupCoords(coordStr)
         setEstimatePickup([coords.latitude, coords.longitude])
+        setPickupConfirmed(true)
         const name = await reverseGeocoder.lookupName(coords.latitude, coords.longitude)
         setPickupDisplay(name ?? coordStr)
         setLocating(false)
@@ -99,26 +103,34 @@ export function GuestBooking({ onlineDrivers, isLoading, error, onRequest }: Pro
     )
   }
 
-  const handlePickupBlur = async () => {
-    if (pickupCoords) {
-      const [lat, lng] = pickupCoords.split(',').map(Number)
-      setEstimatePickup([lat, lng])
-    } else if (pickupDisplay.trim()) {
-      const ll = await geocode(pickupDisplay.trim())
-      if (ll) setEstimatePickup(ll)
-    }
-  }
-
-  const handleDestBlur = async () => {
-    if (destDisplay.trim()) {
-      const ll = await geocode(destDisplay.trim())
-      if (ll) setEstimateDest(ll)
-    }
-  }
-
   const selectLandmark = (label: string, coords: [number, number]) => {
     setDestDisplay(label)
     setEstimateDest(coords)
+    setDestConfirmed(true)
+  }
+
+  const handlePickupConfirm = (displayName: string, coords: LatLng) => {
+    setPickupDisplay(displayName.split(',').slice(0, 2).join(',').trim())
+    setPickupCoords(`${coords[0]}, ${coords[1]}`)
+    setEstimatePickup(coords)
+    setPickupConfirmed(true)
+  }
+
+  const handlePickupClear = () => {
+    setPickupCoords(null)
+    setEstimatePickup(null)
+    setPickupConfirmed(false)
+  }
+
+  const handleDestConfirm = (displayName: string, coords: LatLng) => {
+    setDestDisplay(displayName.split(',').slice(0, 2).join(',').trim())
+    setEstimateDest(coords)
+    setDestConfirmed(true)
+  }
+
+  const handleDestClear = () => {
+    setEstimateDest(null)
+    setDestConfirmed(false)
   }
 
   const selectRickshawType = (type: RickshawType) => {
@@ -127,20 +139,10 @@ export function GuestBooking({ onlineDrivers, isLoading, error, onRequest }: Pro
   }
 
   const handleRequest = async () => {
-    setGeocodeError(null)
-    setGeocoding(true)
-    let pickup = pickupCoords
-    if (!pickup) {
-      const ll = await geocode(pickupDisplay.trim())
-      if (!ll) { setGeocodeError('Startort konnte nicht gefunden werden.'); setGeocoding(false); return }
-      pickup = `${ll[0]}, ${ll[1]}`
-    }
-    const ll = estimateDest ?? await geocode(destDisplay.trim())
-    if (!ll) { setGeocodeError('Ziel konnte nicht gefunden werden.'); setGeocoding(false); return }
-    setGeocoding(false)
+    if (!pickupCoords || !estimateDest) return
     await onRequest(
-      pickup,
-      `${ll[0]}, ${ll[1]}`,
+      pickupCoords,
+      `${estimateDest[0]}, ${estimateDest[1]}`,
       passengerCount,
       selectedType.id.startsWith('fallback-') ? null : selectedType.id,
     )
@@ -157,36 +159,36 @@ export function GuestBooking({ onlineDrivers, isLoading, error, onRequest }: Pro
       <div className="guest-route-card">
         <div className="guest-route-card__row">
           <span className="guest-route-card__dot guest-route-card__dot--from" />
-          <input
-            id="pickup"
-            className="guest-route-card__input"
-            type="text"
+          <AddressInput
             placeholder="Startort"
             value={pickupDisplay}
-            onChange={e => { setPickupDisplay(e.target.value); setPickupCoords(null); setEstimatePickup(null) }}
-            onBlur={handlePickupBlur}
+            confirmed={pickupConfirmed}
+            onChange={v => { setPickupDisplay(v); handlePickupClear() }}
+            onConfirm={handlePickupConfirm}
+            onClear={handlePickupClear}
+            rightSlot={
+              <button
+                type="button"
+                className="guest-route-card__locate"
+                onClick={useCurrentLocation}
+                disabled={locating}
+                title="Aktuellen Standort verwenden"
+              >
+                {locating ? '…' : '📍'}
+              </button>
+            }
           />
-          <button
-            type="button"
-            className="guest-route-card__locate"
-            onClick={useCurrentLocation}
-            disabled={locating}
-            title="Aktuellen Standort verwenden"
-          >
-            {locating ? '…' : '📍'}
-          </button>
         </div>
         <div className="guest-route-card__sep" />
         <div className="guest-route-card__row">
           <span className="guest-route-card__dot guest-route-card__dot--to" />
-          <input
-            id="destination"
-            className="guest-route-card__input"
-            type="text"
+          <AddressInput
             placeholder="Ziel"
             value={destDisplay}
-            onChange={e => { setDestDisplay(e.target.value); setEstimateDest(null) }}
-            onBlur={handleDestBlur}
+            confirmed={destConfirmed}
+            onChange={v => { setDestDisplay(v); handleDestClear() }}
+            onConfirm={handleDestConfirm}
+            onClear={handleDestClear}
           />
         </div>
       </div>
@@ -261,9 +263,9 @@ export function GuestBooking({ onlineDrivers, isLoading, error, onRequest }: Pro
       <button
         className="rm-btn guest-idle__cta"
         onClick={handleRequest}
-        disabled={isLoading || geocoding || fareLoading || !pickupDisplay.trim() || !destDisplay.trim() || (!!estimatePickup && !!estimateDest && !fareResult)}
+        disabled={isLoading || fareLoading || !pickupConfirmed || !destConfirmed || (!!estimatePickup && !!estimateDest && !fareResult)}
       >
-        <span>{geocoding ? 'Ort wird gesucht…' : isLoading ? 'Wird angefordert…' : 'Fahrer anfordern →'}</span>
+        <span>{isLoading ? 'Wird angefordert…' : 'Fahrer anfordern →'}</span>
       </button>
 
       {onlineDrivers !== null && (
