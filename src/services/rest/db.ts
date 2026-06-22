@@ -125,7 +125,7 @@ export const restDbService: DbService = {
   // Called only from GuestPanel (role=customer) — server returns { id } | null for guests
   async getWaitingGuestRequest(_guestId) {
     try {
-      return await apiFetch<{ id: string } | null>('/guest-requests')
+      return await apiFetch<GuestRequestRow | null>('/guest-requests')
     } catch {
       return null
     }

@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { dbService, realtimeService, functionsService } from '../services'
+import type { GuestRequestRow } from '../services'
 import type { Ride } from '../types/ride'
 
 type Status = 'idle' | 'waiting' | 'matched' | 'completed' | 'error'
@@ -16,6 +17,7 @@ type UseRideMatchingResult = {
   confirmPickup: () => Promise<void>
   resetToIdle: () => void
   currentRide: Ride | null
+  pendingRequest: GuestRequestRow | null
   status: Status
   isLoading: boolean
   error: string | null
@@ -23,9 +25,16 @@ type UseRideMatchingResult = {
 
 export function useRideMatching(userId: string, role: 'driver' | 'guest'): UseRideMatchingResult {
   const [currentRide, setCurrentRide] = useState<Ride | null>(null)
+  const [pendingRequest, setPendingRequest] = useState<GuestRequestRow | null>(null)
   const [status, setStatus] = useState<Status>('idle')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const loadPendingRequest = useCallback(async () => {
+    if (!userId || role !== 'guest') return
+    const request = await dbService.getWaitingGuestRequest(userId)
+    setPendingRequest(request)
+  }, [userId, role])
 
   // Restore state on mount
   useEffect(() => {
@@ -42,7 +51,11 @@ export function useRideMatching(userId: string, role: 'driver' | 'guest'): UseRi
           ? await dbService.getDriverAvailability(userId)
           : await dbService.getWaitingGuestRequest(userId)
 
-      if (existing) { setStatus('waiting'); setIsLoading(true) }
+      if (existing) {
+        if (role === 'guest') setPendingRequest(existing as GuestRequestRow)
+        setStatus('waiting')
+        setIsLoading(true)
+      }
     }
 
     checkExistingState()
@@ -53,7 +66,7 @@ export function useRideMatching(userId: string, role: 'driver' | 'guest'): UseRi
     if (status !== 'waiting' || !userId) return
     const interval = setInterval(async () => {
       const ride = await dbService.getActiveRide(userId, 'guest_id')
-      if (ride) { setCurrentRide(ride); setStatus('matched'); setIsLoading(false) }
+      if (ride) { setCurrentRide(ride); setStatus('matched'); setIsLoading(false); setPendingRequest(null) }
     }, 5000)
     return () => clearInterval(interval)
   }, [status, userId])
@@ -65,14 +78,14 @@ export function useRideMatching(userId: string, role: 'driver' | 'guest'): UseRi
     const unsubDriver = realtimeService.subscribeRideByDriverId(
       `rides-driver-${userId}`,
       userId,
-      (ride) => { setCurrentRide(ride); setStatus('matched'); setIsLoading(false) },
+      (ride) => { setCurrentRide(ride); setStatus('matched'); setIsLoading(false); setPendingRequest(null) },
       () => {},
     )
 
     const unsubGuest = realtimeService.subscribeRideByGuestId(
       `rides-guest-${userId}`,
       userId,
-      (ride) => { setCurrentRide(ride); setStatus('matched'); setIsLoading(false) },
+      (ride) => { setCurrentRide(ride); setStatus('matched'); setIsLoading(false); setPendingRequest(null) },
       (ride) => {
         setCurrentRide(ride)
         if (ride.status === 'completed') setStatus('completed')
@@ -87,7 +100,7 @@ export function useRideMatching(userId: string, role: 'driver' | 'guest'): UseRi
     if (result.matched && result.ride_id) {
       console.log('[useRideMatching] Match found immediately, ride_id:', result.ride_id)
       const ride = await dbService.getRideById(result.ride_id)
-      if (ride) { setCurrentRide(ride); setStatus('matched'); setIsLoading(false) }
+      if (ride) { setCurrentRide(ride); setStatus('matched'); setIsLoading(false); setPendingRequest(null) }
     }
   }
 
@@ -128,9 +141,10 @@ export function useRideMatching(userId: string, role: 'driver' | 'guest'): UseRi
       if (!existing) {
         await functionsService.invokeCreateRequest(pickupLocation, destination, passengerCount, rickshawTypeId)
       }
+      await loadPendingRequest()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unbekannter Fehler')
-      setStatus('error'); setIsLoading(false)
+      setStatus('error'); setIsLoading(false); setPendingRequest(null)
     }
   }
 
@@ -138,7 +152,7 @@ export function useRideMatching(userId: string, role: 'driver' | 'guest'): UseRi
     if (!userId) return
     const { error: deleteError } = await dbService.deleteWaitingGuestRequest(userId)
     if (deleteError) { setError(deleteError.message); return }
-    setStatus('idle'); setIsLoading(false); setError(null)
+    setStatus('idle'); setIsLoading(false); setError(null); setPendingRequest(null)
   }
 
   const confirmPickup = async () => {
@@ -150,9 +164,10 @@ export function useRideMatching(userId: string, role: 'driver' | 'guest'): UseRi
   const resetToIdle = () => {
     setStatus('idle')
     setCurrentRide(null)
+    setPendingRequest(null)
     setIsLoading(false)
     setError(null)
   }
 
-  return { submitAvailability, requestRide, cancelRequest, confirmPickup, resetToIdle, currentRide, status, isLoading, error }
+  return { submitAvailability, requestRide, cancelRequest, confirmPickup, resetToIdle, currentRide, pendingRequest, status, isLoading, error }
 }

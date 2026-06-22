@@ -12,7 +12,7 @@ import './GuestPanel.css'
 
 export function GuestPanel() {
   const { user } = useAuth()
-  const { requestRide, cancelRequest, resetToIdle, currentRide, status, isLoading, error } = useRideMatching(
+  const { requestRide, cancelRequest, resetToIdle, currentRide, pendingRequest, status, isLoading, error } = useRideMatching(
     user?.id ?? '',
     'guest'
   )
@@ -70,7 +70,13 @@ export function GuestPanel() {
         : status === 'matched' && currentRide
         ? <GuestRideActive ride={currentRide} currentUserId={user?.id ?? ''} />
         : status === 'waiting'
-        ? <GuestSearching onCancel={cancelRequest} />
+        ? <GuestSearching
+            requestId={pendingRequest?.id}
+            pickupLocation={pendingRequest?.pickup_location ?? null}
+            destination={pendingRequest?.destination ?? null}
+            priceEur={pendingRequest?.price_eur ?? null}
+            onCancel={cancelRequest}
+          />
         : <GuestBooking onlineDrivers={onlineDrivers} isLoading={isLoading} error={error} onRequest={requestRide} />
       }
     </>

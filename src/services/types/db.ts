@@ -91,7 +91,7 @@ export interface DbService {
   getCompletedRides(userId: string, field: 'driver_id' | 'guest_id'): Promise<Ride[]>
 
   // guest_requests
-  getWaitingGuestRequest(guestId: string): Promise<{ id: string } | null>
+  getWaitingGuestRequest(guestId: string): Promise<GuestRequestRow | null>
   getWaitingGuestRequests(): Promise<GuestRequestRow[]>
   insertGuestRequest(
     guestId: string,

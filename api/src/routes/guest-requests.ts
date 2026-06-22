@@ -26,7 +26,11 @@ router.get('/', requireAuth, async (req, res: Response) => {
   }
 
   const { rows } = await pool.query(
-    `SELECT id FROM guest_requests WHERE guest_id = $1 AND status = 'waiting' LIMIT 1`,
+    `SELECT id, guest_id, created_at, pickup_location, destination, price_eur,
+            passenger_count, rickshaw_type_id, rickshaw_price_multiplier, rickshaw_price_per_km
+       FROM guest_requests
+      WHERE guest_id = $1 AND status = 'waiting'
+      LIMIT 1`,
     [userId],
   )
   res.json(rows[0] ?? null)

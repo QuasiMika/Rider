@@ -109,11 +109,11 @@ export const supabaseDbService: DbService = {
   async getWaitingGuestRequest(guestId) {
     const { data } = await supabase
       .from('guest_requests')
-      .select('id')
+      .select('id, guest_id, created_at, pickup_location, destination, price_eur, passenger_count, rickshaw_type_id, rickshaw_price_multiplier, rickshaw_price_per_km')
       .eq('guest_id', guestId)
       .eq('status', 'waiting')
       .maybeSingle()
-    return data as { id: string } | null
+    return data as GuestRequestRow | null
   },
 
   async getWaitingGuestRequests() {
