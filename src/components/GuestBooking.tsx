@@ -38,8 +38,6 @@ export function GuestBooking({ onlineDrivers, isLoading, error, timeoutNotice, o
   const [destConfirmed, setDestConfirmed] = useState(false)
   const [locating, setLocating] = useState(false)
   const [locateError, setLocateError] = useState<string | null>(null)
-  const [geocodeError, setGeocodeError] = useState<string | null>(null)
-  const [geocoding, setGeocoding] = useState(false)
   const [passengerCount, setPassengerCount] = useState(1)
   const [rickshawTypes, setRickshawTypes] = useState<RickshawType[]>([])
   const [selectedRickshawTypeId, setSelectedRickshawTypeId] = useState<string | null>(null)
@@ -249,7 +247,7 @@ export function GuestBooking({ onlineDrivers, isLoading, error, timeoutNotice, o
       </div>
 
       {locateError && <p className="ride-error guest-idle__error">{locateError}</p>}
-      {(error || geocodeError) && <p className="ride-error guest-idle__error">{error ?? geocodeError}</p>}
+      {error && <p className="ride-error guest-idle__error">{error}</p>}
       {estimatePickup && estimateDest && !fareLoading && !fareResult && (
         <p className="ride-error guest-idle__error">Route konnte nicht berechnet werden.</p>
       )}
