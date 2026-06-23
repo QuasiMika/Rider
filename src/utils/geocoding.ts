@@ -62,7 +62,7 @@ export async function searchAddresses(
   // Uses viewbox to bias results toward Konstanz but does not restrict strictly (no bounded=1)
   // so that nearby addresses still appear. Bypasses the shared enqueue throttle because
   // the caller (useAddressSearch) already debounces and manages its own abort controller.
-  const url = `${NOMINATIM}/search?q=${encodeURIComponent(query)}&format=json&limit=5&accept-language=de&viewbox=${KONSTANZ_VIEWBOX}&countrycodes=de`
+  const url = `${NOMINATIM}/search?q=${encodeURIComponent(query)}&format=json&limit=5&accept-language=de&viewbox=${KONSTANZ_VIEWBOX}&bounded=1`
   try {
     const res = await fetch(url, signal ? { signal } : undefined)
     if (!res.ok) return []
