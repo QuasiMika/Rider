@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faLocationDot, faRoute } from '@fortawesome/free-solid-svg-icons'
 import { dbService } from '../services'
 import { useDriverLocation } from '../hooks/useDriverLocation'
 import { useResolvedNames } from '../hooks/useResolvedNames'
 import { useChatMessages } from '../hooks/useChatMessages'
+import { geocode, type LatLng } from '../utils/geocoding'
 import { RideMap } from './RideMap'
 import { ChatButton } from './ChatButton'
 import { ChatDrawer } from './ChatDrawer'
@@ -25,6 +26,21 @@ function openMapsToLocation(location: string) {
 
 type Props = { ride: Ride; currentUserId: string }
 
+const NO_SHOW_WAIT_MS = 5 * 60 * 1000
+const ARRIVAL_RADIUS_METERS = 50
+
+function distanceMeters(a: LatLng, b: LatLng) {
+  const earthRadius = 6371000
+  const toRad = (value: number) => value * Math.PI / 180
+  const dLat = toRad(b[0] - a[0])
+  const dLon = toRad(b[1] - a[1])
+  const lat1 = toRad(a[0])
+  const lat2 = toRad(b[0])
+  const h = Math.sin(dLat / 2) ** 2
+    + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2
+  return 2 * earthRadius * Math.asin(Math.sqrt(h))
+}
+
 export function DriverRideActive({ ride, currentUserId }: Props) {
   const [guest, setGuest] = useState<PartnerProfile | null>(null)
   const [completeSlider, setCompleteSlider] = useState(0)
@@ -32,6 +48,11 @@ export function DriverRideActive({ ride, currentUserId }: Props) {
   const [pickupCode, setPickupCode] = useState('')
   const [codeError, setCodeError] = useState<string | null>(null)
   const [verifying, setVerifying] = useState(false)
+  const [cancellingNoShow, setCancellingNoShow] = useState(false)
+  const [noShowError, setNoShowError] = useState<string | null>(null)
+  const [now, setNow] = useState(Date.now())
+  const [pickupCoords, setPickupCoords] = useState<LatLng | null>(null)
+  const autoArrivalRequestedRef = useRef(false)
 
   const { driverPosition, approachPolyline } = useDriverLocation(ride.id, ride.pickup_location ?? undefined)
   const { pickupName, destName } = useResolvedNames(ride.id, ride.pickup_location, ride.destination)
@@ -43,6 +64,26 @@ export function DriverRideActive({ ride, currentUserId }: Props) {
       if (profiles[0]) setGuest(profiles[0])
     })
   }, [ride.guest_id])
+
+  useEffect(() => {
+    autoArrivalRequestedRef.current = false
+  }, [ride.id])
+
+  useEffect(() => {
+    if (ride.status !== 'arrived') return
+    setNow(Date.now())
+    const interval = window.setInterval(() => setNow(Date.now()), 1000)
+    return () => window.clearInterval(interval)
+  }, [ride.status, ride.arrived_at])
+
+  useEffect(() => {
+    if (!ride.pickup_location) { setPickupCoords(null); return }
+    const controller = new AbortController()
+    geocode(ride.pickup_location, controller.signal).then(coords => {
+      if (!controller.signal.aborted) setPickupCoords(coords)
+    })
+    return () => controller.abort()
+  }, [ride.pickup_location])
 
   const handleCompleteRelease = async () => {
     if (completeSlider < 90) { setCompleteSlider(0); return }
@@ -62,6 +103,31 @@ export function DriverRideActive({ ride, currentUserId }: Props) {
     }
     setVerifying(false)
   }
+
+  const markArrivedFromLocation = async () => {
+    setNoShowError(null)
+    const ok = await dbService.markDriverArrived(ride.id)
+    if (!ok) setNoShowError('Ankunft konnte nicht gespeichert werden.')
+  }
+
+  const handleCancelNoShow = async () => {
+    setCancellingNoShow(true)
+    setNoShowError(null)
+    const ok = await dbService.cancelRideNoShow(ride.id)
+    if (!ok) setNoShowError('Die Fahrt konnte noch nicht storniert werden.')
+    setCancellingNoShow(false)
+  }
+
+  const arrivedAt = ride.arrived_at ? new Date(ride.arrived_at).getTime() : null
+  const noShowRemainingMs = arrivedAt ? Math.max(0, arrivedAt + NO_SHOW_WAIT_MS - now) : NO_SHOW_WAIT_MS
+  const canCancelNoShow = ride.status === 'arrived' && noShowRemainingMs <= 0
+
+  useEffect(() => {
+    if (ride.status !== 'pending' || !driverPosition || !pickupCoords || autoArrivalRequestedRef.current) return
+    if (distanceMeters(driverPosition, pickupCoords) > ARRIVAL_RADIUS_METERS) return
+    autoArrivalRequestedRef.current = true
+    void markArrivedFromLocation()
+  }, [ride.status, driverPosition, pickupCoords])
 
   const guestName = guest
     ? `${guest.first_name ?? ''} ${guest.family_name ?? ''}`.trim() || 'Gast'
@@ -131,7 +197,22 @@ export function DriverRideActive({ ride, currentUserId }: Props) {
             </button>
           )}
 
-          {ride.status === 'pending' && (
+          {ride.status === 'arrived' && (
+            <div className="no-show-panel">
+              <div className="no-show-panel__label">Wartezeit am Abholort</div>
+              {canCancelNoShow ? (
+                <button className="rm-btn rm-btn--danger" onClick={handleCancelNoShow} disabled={cancellingNoShow}>
+                  {cancellingNoShow ? 'Wird storniert...' : 'Fahrgast nicht aufgetaucht'}
+                </button>
+              ) : (
+                <button className="rm-btn rm-btn--waiting" disabled>
+                  Warten auf Fahrgast
+                </button>
+              )}
+            </div>
+          )}
+
+          {(ride.status === 'pending' || ride.status === 'arrived') && (
             <div className="pickup-code-input">
               <div className="pickup-code-input__label">Abholcode des Fahrgasts</div>
               <div className="pickup-code-input__row">
@@ -155,6 +236,7 @@ export function DriverRideActive({ ride, currentUserId }: Props) {
               {codeError && <div className="pickup-code-input__error">{codeError}</div>}
             </div>
           )}
+          {noShowError && <div className="pickup-code-input__error">{noShowError}</div>}
 
           {ride.status === 'picked_up' && ride.destination && (
             <button className="rm-btn rm-btn--maps" onClick={() => openMapsToLocation(ride.destination!)}>

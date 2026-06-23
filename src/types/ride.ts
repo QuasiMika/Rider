@@ -26,7 +26,7 @@ export type Ride = {
   id: string
   driver_id: string
   guest_id: string
-  status: 'pending' | 'picked_up' | 'active' | 'completed'
+  status: 'pending' | 'arrived' | 'picked_up' | 'active' | 'completed' | 'cancelled'
   pickup_location?: string
   destination?: string
   actual_end_location?: string
@@ -37,6 +37,7 @@ export type Ride = {
   rickshaw_price_per_km?: number
   pickup_code?: string | null
   created_at: string
+  arrived_at?: string | null
   completed_at?: string | null
 }
 

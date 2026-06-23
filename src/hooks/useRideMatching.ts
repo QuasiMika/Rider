@@ -20,6 +20,7 @@ type UseRideMatchingResult = {
   currentRide: Ride | null
   pendingRequest: GuestRequestRow | null
   searchTimeoutMessage: string | null
+  cancellationMessage: string | null
   status: Status
   isLoading: boolean
   error: string | null
@@ -29,6 +30,7 @@ export function useRideMatching(userId: string, role: 'driver' | 'guest'): UseRi
   const [currentRide, setCurrentRide] = useState<Ride | null>(null)
   const [pendingRequest, setPendingRequest] = useState<GuestRequestRow | null>(null)
   const [searchTimeoutMessage, setSearchTimeoutMessage] = useState<string | null>(null)
+  const [cancellationMessage, setCancellationMessage] = useState<string | null>(null)
   const [status, setStatus] = useState<Status>('idle')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -124,6 +126,14 @@ export function useRideMatching(userId: string, role: 'driver' | 'guest'): UseRi
       userId,
       (ride) => { setCurrentRide(ride); setStatus('matched'); setIsLoading(false); setPendingRequest(null) },
       (ride) => {
+        if (ride.status === 'cancelled') {
+          setCurrentRide(null)
+          setPendingRequest(null)
+          setStatus('idle')
+          setIsLoading(false)
+          if (role === 'guest') setCancellationMessage('Fahrt wurde storniert, da du nicht am Abholort warst.')
+          return
+        }
         setCurrentRide(ride)
         if (ride.status === 'completed') setStatus('completed')
       },
@@ -172,6 +182,7 @@ export function useRideMatching(userId: string, role: 'driver' | 'guest'): UseRi
   ) => {
     if (!userId) return
     setIsLoading(true); setError(null); setSearchTimeoutMessage(null); setStatus('waiting')
+    setCancellationMessage(null)
 
     try {
       const existing = await dbService.getWaitingGuestRequest(userId)
@@ -203,6 +214,7 @@ export function useRideMatching(userId: string, role: 'driver' | 'guest'): UseRi
     setCurrentRide(null)
     setPendingRequest(null)
     setSearchTimeoutMessage(null)
+    setCancellationMessage(null)
     setIsLoading(false)
     setError(null)
   }
@@ -216,6 +228,7 @@ export function useRideMatching(userId: string, role: 'driver' | 'guest'): UseRi
     currentRide,
     pendingRequest,
     searchTimeoutMessage,
+    cancellationMessage,
     status,
     isLoading,
     error,

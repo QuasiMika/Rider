@@ -10,8 +10,17 @@ import { RideTile } from '../components/rides/RideTile'
 import { RideDetailDialog, StarDisplay } from '../components/rides/RideDetailDialog'
 import './Profil.css'
 
-function RideCta({ userId, role }: { userId: string; role: 'driver' | 'guest' }) {
-  const { currentRide, status } = useRideMatching(userId, role)
+type RideMatchingStatus = 'idle' | 'waiting' | 'matched' | 'completed' | 'error'
+
+function RideCta({
+  role,
+  currentRide,
+  status,
+}: {
+  role: 'driver' | 'guest'
+  currentRide: Ride | null
+  status: RideMatchingStatus
+}) {
   const navigate = useNavigate()
 
   if (status === 'waiting') {
@@ -27,10 +36,10 @@ function RideCta({ userId, role }: { userId: string; role: 'driver' | 'guest' })
     )
   }
 
-  if (status === 'matched' && currentRide?.status === 'pending') {
+  if (status === 'matched' && (currentRide?.status === 'pending' || currentRide?.status === 'arrived')) {
     return (
       <div className="profil-card profil-card--cta profil-card--live" onClick={() => navigate('/ride')}>
-        <div className="profil-card__label">Dein Fahrer ist unterwegs</div>
+        <div className="profil-card__label">{currentRide.status === 'arrived' ? 'Dein Fahrer ist am Abholort' : 'Dein Fahrer ist unterwegs'}</div>
         <div className="profil-arriving">
           <span className="profil-arriving__vehicle">🛺</span>
           <div className="profil-arriving__road" />
@@ -40,7 +49,7 @@ function RideCta({ userId, role }: { userId: string; role: 'driver' | 'guest' })
     )
   }
 
-  if (status === 'matched' && currentRide?.status === 'active') {
+  if (status === 'matched' && (currentRide?.status === 'picked_up' || currentRide?.status === 'active')) {
     return (
       <div className="profil-card profil-card--cta profil-card--live" onClick={() => navigate('/ride')}>
         <div className="profil-card__label">Fahrt läuft</div>
@@ -178,10 +187,21 @@ export default function Profil() {
     : '–'
 
   const userRole = profile?.role === 'driver' ? 'driver' : 'guest'
+  const { currentRide, status: rideStatus } = useRideMatching(user?.id ?? '', userRole)
   const selectedRickshaw = rickshawTypes.find(type => type.id === profile?.rickshaw_type_id) ?? null
+  const lockedRideStatuses: Ride['status'][] = ['pending', 'arrived', 'picked_up', 'active']
+  const isRickshawLocked = profile?.role === 'driver'
+    && rideStatus === 'matched'
+    && !!currentRide
+    && lockedRideStatuses.includes(currentRide.status)
+  const bookedRickshaw = rickshawTypes.find(type => type.id === currentRide?.rickshaw_type_id) ?? null
+  const rickshawSelectValue = isRickshawLocked && currentRide?.rickshaw_type_id
+    ? currentRide.rickshaw_type_id
+    : profile?.rickshaw_type_id ?? ''
 
   const handleRickshawChange = async (rickshawTypeId: string) => {
     if (!user || !profile) return
+    if (isRickshawLocked) return
     setSavingRickshaw(true)
     setRickshawMessage(null)
     const { error: updateError } = await dbService.updateDriverRickshawType(user.id, rickshawTypeId)
@@ -250,14 +270,19 @@ export default function Profil() {
                 <div className="profil-card__label">Rikschatyp</div>
                 <RoundedSelect
                   className="profil-select"
-                  value={profile.rickshaw_type_id ?? ''}
+                  value={rickshawSelectValue}
                   onChange={handleRickshawChange}
-                  disabled={savingRickshaw || rickshawTypes.length === 0}
+                  disabled={savingRickshaw || rickshawTypes.length === 0 || isRickshawLocked}
                   options={rickshawTypes.map(type => ({
                     value: type.id,
                     label: `${type.name} · ${type.capacity} Personen · ${type.price_per_km.toFixed(2).replace('.', ',')} €/km`,
                   }))}
                 />
+                {isRickshawLocked && (
+                  <div className="profil-card__hint">
+                    Gesperrt während der laufenden Fahrt. Gebucht: {bookedRickshaw?.name ?? selectedRickshaw?.name ?? 'Rikscha-Modell'}
+                  </div>
+                )}
                 {rickshawMessage && <div className="profil-card__hint">{rickshawMessage}</div>}
               </div>
             )}
@@ -291,7 +316,7 @@ export default function Profil() {
               </div>
             )}
 
-            <RideCta userId={user?.id ?? ''} role={userRole} />
+            <RideCta role={userRole} currentRide={currentRide} status={rideStatus} />
           </div>
 
           {/* ─── Profil bearbeiten ─────────────────────── */}

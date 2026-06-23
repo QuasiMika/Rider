@@ -228,11 +228,13 @@
 
 /* pending: amber — neutral waiting state */
 .admin-badge--pending   { background: #fef3c7; color: #92400e; }
+.admin-badge--arrived   { background: #dbeafe; color: #1d4ed8; border: 1px solid #93c5fd; }
 /* picked_up / active: brand green */
 .admin-badge--picked_up { background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-border); }
 .admin-badge--active    { background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-border); }
 /* completed: neutral */
 .admin-badge--completed { background: var(--border); color: var(--text); }
+.admin-badge--cancelled { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
 .admin-badge--inactive    { background: var(--border); color: var(--text); }
 .admin-badge--deactivated { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
 

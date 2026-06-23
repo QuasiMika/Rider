@@ -179,6 +179,24 @@
 }
 .rm-btn--secondary:hover { background: var(--code-bg); filter: none; }
 
+.rm-btn--danger {
+  background: #dc2626;
+}
+
+.rm-btn--danger:hover {
+  filter: brightness(0.92);
+}
+
+.rm-btn--waiting {
+  background: var(--border);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.rm-btn--waiting:disabled {
+  opacity: 0.72;
+}
+
 /* ─── Driver completed screen ────────────────────────────── */
 .driver-completed {
   width: 100%;
@@ -772,6 +790,25 @@
 }
 
 /* ─── Driver idle page ───────────────────────────────────── */
+.no-show-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 1rem 1.25rem;
+  background: var(--code-bg);
+  border: 1.5px solid var(--border);
+  border-radius: 0.875rem;
+  margin-top: 0.75rem;
+}
+
+.no-show-panel__label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text);
+}
+
 .driver-idle {
   width: 100%;
   max-width: 560px;
@@ -826,10 +863,6 @@
 
 .driver-filter__select {
   width: auto;
-}
-
-.driver-filter__select--model .rounded-select__button {
-  min-width: 98px;
 }
 
 .driver-idle__empty {

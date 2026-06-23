@@ -86,7 +86,7 @@ export const supabaseDbService: DbService = {
       .from('rides')
       .select('*')
       .eq(field, userId)
-      .in('status', ['pending', 'picked_up', 'active'])
+      .in('status', ['pending', 'arrived', 'picked_up', 'active'])
       .maybeSingle()
     return (data as Ride | null) ?? null
   },
@@ -231,6 +231,16 @@ export const supabaseDbService: DbService = {
 
   async confirmPickupByDriver(rideId, code) {
     const { data } = await supabase.rpc('confirm_pickup_by_driver', { p_ride_id: rideId, p_code: code })
+    return data === true
+  },
+
+  async markDriverArrived(rideId) {
+    const { data } = await supabase.rpc('mark_driver_arrived', { p_ride_id: rideId })
+    return data === true
+  },
+
+  async cancelRideNoShow(rideId) {
+    const { data } = await supabase.rpc('cancel_ride_no_show', { p_ride_id: rideId })
     return data === true
   },
 

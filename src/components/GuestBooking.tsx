@@ -38,9 +38,6 @@ export function GuestBooking({ onlineDrivers, isLoading, error, timeoutNotice, o
   const [destConfirmed, setDestConfirmed] = useState(false)
   const [locating, setLocating] = useState(false)
   const [locateError, setLocateError] = useState<string | null>(null)
-  const [geocodeError, setGeocodeError] = useState<string | null>(null)
-  const [geocoding, setGeocoding] = useState(false)
-  const [passengerCount, setPassengerCount] = useState(1)
   const [rickshawTypes, setRickshawTypes] = useState<RickshawType[]>([])
   const [selectedRickshawTypeId, setSelectedRickshawTypeId] = useState<string | null>(null)
 
@@ -52,9 +49,7 @@ export function GuestBooking({ onlineDrivers, isLoading, error, timeoutNotice, o
   const availableTypes = rickshawTypes.length > 0 ? rickshawTypes : FALLBACK_RICKSHAW_TYPES
   const selectedType =
     availableTypes.find(type => type.id === selectedRickshawTypeId)
-    ?? availableTypes.find(type => type.capacity >= passengerCount)
-    ?? availableTypes[availableTypes.length - 1]
-  const maxPassengers = selectedType?.capacity ?? Math.max(...availableTypes.map(type => type.capacity))
+    ?? availableTypes[0]
 
   useEffect(() => {
     const loadTypes = () => {
@@ -136,7 +131,6 @@ export function GuestBooking({ onlineDrivers, isLoading, error, timeoutNotice, o
 
   const selectRickshawType = (type: RickshawType) => {
     setSelectedRickshawTypeId(type.id)
-    setPassengerCount(current => Math.min(current, type.capacity))
   }
 
   const handleRequest = async () => {
@@ -144,7 +138,7 @@ export function GuestBooking({ onlineDrivers, isLoading, error, timeoutNotice, o
     await onRequest(
       pickupCoords,
       `${estimateDest[0]}, ${estimateDest[1]}`,
-      passengerCount,
+      selectedType.capacity,
       selectedType.id.startsWith('fallback-') ? null : selectedType.id,
     )
   }
@@ -211,22 +205,6 @@ export function GuestBooking({ onlineDrivers, isLoading, error, timeoutNotice, o
         ))}
       </div>
 
-      <div className="guest-passengers" role="group" aria-label="Personenanzahl">
-        <span className="guest-passengers__label">Personen</span>
-        <div className="guest-passengers__options">
-          {Array.from({ length: maxPassengers }, (_, index) => index + 1).map(count => (
-            <button
-              key={count}
-              type="button"
-              className={`guest-passengers__option${passengerCount === count ? ' guest-passengers__option--active' : ''}`}
-              onClick={() => setPassengerCount(count)}
-            >
-              {count}
-            </button>
-          ))}
-        </div>
-      </div>
-
       <div className="guest-rickshaw-types" role="radiogroup" aria-label="Rikscha-Modell">
         {availableTypes.map(type => (
           <button
@@ -249,7 +227,7 @@ export function GuestBooking({ onlineDrivers, isLoading, error, timeoutNotice, o
       </div>
 
       {locateError && <p className="ride-error guest-idle__error">{locateError}</p>}
-      {(error || geocodeError) && <p className="ride-error guest-idle__error">{error ?? geocodeError}</p>}
+      {error && <p className="ride-error guest-idle__error">{error}</p>}
       {estimatePickup && estimateDest && !fareLoading && !fareResult && (
         <p className="ride-error guest-idle__error">Route konnte nicht berechnet werden.</p>
       )}

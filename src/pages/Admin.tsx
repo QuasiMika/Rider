@@ -12,9 +12,11 @@ type Tab = 'dashboard' | 'rides' | 'drivers' | 'vehicles'
 
 const STATUS_LABELS: Record<string, string> = {
   pending: 'Unterwegs',
+  arrived: 'Am Abholort',
   picked_up: 'Aufgenommen',
   active: 'Aktiv',
   completed: 'Abgeschlossen',
+  cancelled: 'Storniert',
 }
 
 function formatDateTime(iso: string) {
@@ -232,9 +234,11 @@ function RideList() {
         <select className="admin-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
           <option value="all">Alle Status</option>
           <option value="pending">Unterwegs</option>
+          <option value="arrived">Am Abholort</option>
           <option value="picked_up">Aufgenommen</option>
           <option value="active">Aktiv</option>
           <option value="completed">Abgeschlossen</option>
+          <option value="cancelled">Storniert</option>
         </select>
         <input className="admin-input" placeholder="Fahrer suchen…" value={driverSearch} onChange={e => setDriverSearch(e.target.value)} />
         <input className="admin-input" placeholder="Fahrgast suchen…" value={guestSearch} onChange={e => setGuestSearch(e.target.value)} />

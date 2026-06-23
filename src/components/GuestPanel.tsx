@@ -12,7 +12,7 @@ import './GuestPanel.css'
 
 export function GuestPanel() {
   const { user } = useAuth()
-  const { requestRide, cancelRequest, resetToIdle, currentRide, pendingRequest, searchTimeoutMessage, status, isLoading, error } = useRideMatching(
+  const { requestRide, cancelRequest, resetToIdle, currentRide, pendingRequest, searchTimeoutMessage, cancellationMessage, status, isLoading, error } = useRideMatching(
     user?.id ?? '',
     'guest'
   )
@@ -62,6 +62,12 @@ export function GuestPanel() {
       {paymentSuccess && (
         <div className="payment-success-banner">
           ✓ Zahlung erfolgreich — Danke für deine Fahrt mit Rider!
+        </div>
+      )}
+
+      {cancellationMessage && (
+        <div className="ride-toast" role="status">
+          {cancellationMessage}
         </div>
       )}
 

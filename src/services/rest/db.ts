@@ -264,6 +264,24 @@ export const restDbService: DbService = {
     }
   },
 
+  async markDriverArrived(rideId) {
+    try {
+      const result = await apiFetch<{ success: boolean }>(`/rides/${rideId}/arrived`, { method: 'POST' })
+      return result.success === true
+    } catch {
+      return false
+    }
+  },
+
+  async cancelRideNoShow(rideId) {
+    try {
+      const result = await apiFetch<{ success: boolean }>(`/rides/${rideId}/no-show`, { method: 'POST' })
+      return result.success === true
+    } catch {
+      return false
+    }
+  },
+
   async completeRide(rideId, location) {
     await apiFetch(`/rides/${rideId}/complete`, {
       method: 'POST',

@@ -56,6 +56,7 @@ export function GuestRideActive({ ride, currentUserId }: Props) {
           ? `ist auf dem Weg zu dir -  ${formatDuration(etaSeconds)}`
           : `ist auf dem Weg zu dir`
         : `Warte auf GPS…`)
+      : ride.status === 'arrived' ? 'ist am Abholort angekommen'
       : ride.status === 'picked_up' ? 'Unterwegs zum Ziel'
         : 'Genieße die Fahrt!'
 
@@ -110,7 +111,7 @@ export function GuestRideActive({ ride, currentUserId }: Props) {
             </div>
           )}
 
-          {ride.status === 'pending' && (
+          {(ride.status === 'pending' || ride.status === 'arrived') && (
             ride.pickup_code
               ? (
                 <div className="pickup-code-display">
@@ -136,7 +137,7 @@ export function GuestRideActive({ ride, currentUserId }: Props) {
             height={420}
             rideId={ride.id}
             rideStatus={ride.status}
-            approachPolyline={ride.status === 'pending' ? approachPolyline : null}
+            approachPolyline={ride.status === 'pending' || ride.status === 'arrived' ? approachPolyline : null}
           />
         </div>
         {(ride.status === 'picked_up' || ride.status === 'active') && (

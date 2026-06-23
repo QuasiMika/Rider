@@ -58,7 +58,7 @@ function BoundsSync({
 
   // Smooth tracking: keep driver + pickup in view while approaching
   useEffect(() => {
-    if (!driverPosition || rideStatus !== 'pending') return
+    if (!driverPosition || (rideStatus !== 'pending' && rideStatus !== 'arrived')) return
     const anchor = coords[0]
     const points: LatLng[] = anchor ? [driverPosition, anchor] : [driverPosition]
     if (points.length === 1) {
@@ -163,12 +163,12 @@ export function RideMap({ pickupLocation, destination, height = 220, driverPosit
         <BoundsSync coords={coords} driverPosition={driverPosition} rideStatus={rideStatus} />
 
         {/* Approach route (driver → pickup): shown while driver is en route */}
-        {rideStatus === 'pending' && approachPolyline && approachPolyline.length > 0 && (
+        {(rideStatus === 'pending' || rideStatus === 'arrived') && approachPolyline && approachPolyline.length > 0 && (
           <Polyline positions={approachPolyline} color="#f59e0b" weight={4} opacity={0.8} />
         )}
 
         {/* Trip route (pickup → destination): shown once guest is picked up */}
-        {rideStatus !== 'pending' && tripRoute && (
+        {rideStatus !== 'pending' && rideStatus !== 'arrived' && tripRoute && (
           <Polyline positions={tripRoute.polyline} color="#3b82f6" weight={4} opacity={0.75} />
         )}
 
