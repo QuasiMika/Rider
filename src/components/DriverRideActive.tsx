@@ -6,6 +6,7 @@ import { useDriverLocation } from '../hooks/useDriverLocation'
 import { useResolvedNames } from '../hooks/useResolvedNames'
 import { useChatMessages } from '../hooks/useChatMessages'
 import { geocode, type LatLng } from '../utils/geocoding'
+import { withTimeout, API_TIMEOUT_MESSAGE } from '../utils/withTimeout'
 import { RideMap } from './RideMap'
 import { ChatButton } from './ChatButton'
 import { ChatDrawer } from './ChatDrawer'
@@ -50,6 +51,7 @@ export function DriverRideActive({ ride, currentUserId }: Props) {
   const [verifying, setVerifying] = useState(false)
   const [cancellingNoShow, setCancellingNoShow] = useState(false)
   const [noShowError, setNoShowError] = useState<string | null>(null)
+  const [serverError, setServerError] = useState<string | null>(null)
   const [now, setNow] = useState(Date.now())
   const [pickupCoords, setPickupCoords] = useState<LatLng | null>(null)
   const autoArrivalRequestedRef = useRef(false)
@@ -88,8 +90,13 @@ export function DriverRideActive({ ride, currentUserId }: Props) {
   const handleCompleteRelease = async () => {
     if (completeSlider < 90) { setCompleteSlider(0); return }
     setCompleting(true)
-    const location = driverPosition ? `${driverPosition[0]},${driverPosition[1]}` : ''
-    await dbService.completeRide(ride.id, location)
+    setServerError(null)
+    try {
+      const location = driverPosition ? `${driverPosition[0]},${driverPosition[1]}` : ''
+      await withTimeout(dbService.completeRide(ride.id, location))
+    } catch (err) {
+      setServerError(err instanceof Error ? err.message : API_TIMEOUT_MESSAGE)
+    }
     setCompleteSlider(0); setCompleting(false)
   }
 
@@ -97,24 +104,37 @@ export function DriverRideActive({ ride, currentUserId }: Props) {
     if (pickupCode.length !== 4) return
     setVerifying(true)
     setCodeError(null)
-    const ok = await dbService.confirmPickupByDriver(ride.id, pickupCode)
-    if (!ok) {
-      setCodeError('Falscher Code. Bitte erneut versuchen.')
+    setServerError(null)
+    try {
+      const ok = await withTimeout(dbService.confirmPickupByDriver(ride.id, pickupCode))
+      if (!ok) setCodeError('Falscher Code. Bitte erneut versuchen.')
+    } catch (err) {
+      setServerError(err instanceof Error ? err.message : API_TIMEOUT_MESSAGE)
     }
     setVerifying(false)
   }
 
   const markArrivedFromLocation = async () => {
     setNoShowError(null)
-    const ok = await dbService.markDriverArrived(ride.id)
-    if (!ok) setNoShowError('Ankunft konnte nicht gespeichert werden.')
+    setServerError(null)
+    try {
+      const ok = await withTimeout(dbService.markDriverArrived(ride.id))
+      if (!ok) setNoShowError('Ankunft konnte nicht gespeichert werden.')
+    } catch (err) {
+      setServerError(err instanceof Error ? err.message : API_TIMEOUT_MESSAGE)
+    }
   }
 
   const handleCancelNoShow = async () => {
     setCancellingNoShow(true)
     setNoShowError(null)
-    const ok = await dbService.cancelRideNoShow(ride.id)
-    if (!ok) setNoShowError('Die Fahrt konnte noch nicht storniert werden.')
+    setServerError(null)
+    try {
+      const ok = await withTimeout(dbService.cancelRideNoShow(ride.id))
+      if (!ok) setNoShowError('Die Fahrt konnte noch nicht storniert werden.')
+    } catch (err) {
+      setServerError(err instanceof Error ? err.message : API_TIMEOUT_MESSAGE)
+    }
     setCancellingNoShow(false)
   }
 
@@ -157,6 +177,12 @@ export function DriverRideActive({ ride, currentUserId }: Props) {
             <div>
               <div className="rm-partner__label">Dein Gast</div>
               <div className="rm-partner__name">{guestName}</div>
+              <div className="rm-partner__status">
+                {ride.status === 'pending'  && 'Du bist auf dem Weg zum Fahrgast'}
+                {ride.status === 'arrived'  && 'Du bist am Abholort – warte auf den Fahrgast'}
+                {ride.status === 'picked_up' && 'Auf dem Weg zum Ziel'}
+                {ride.status === 'active'   && 'Fahrt läuft'}
+              </div>
             </div>
           </div>
           <div className="rm-chat-row">
@@ -237,6 +263,7 @@ export function DriverRideActive({ ride, currentUserId }: Props) {
             </div>
           )}
           {noShowError && <div className="pickup-code-input__error">{noShowError}</div>}
+          {serverError && <div className="rm-server-error">{serverError}</div>}
 
           {ride.status === 'picked_up' && ride.destination && (
             <button className="rm-btn rm-btn--maps" onClick={() => openMapsToLocation(ride.destination!)}>

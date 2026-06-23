@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { dbService, realtimeService, functionsService } from '../services'
+import { withTimeout } from '../utils/withTimeout'
 import type { GuestRequestRow, RickshawType } from '../services'
 import type { Ride, AcceptResult } from '../types/ride'
 
@@ -188,7 +189,7 @@ export function useDriverRequests(
     setError(null)
 
     try {
-      const result: AcceptResult = await functionsService.invokeAcceptRide(requestId)
+      const result: AcceptResult = await withTimeout(functionsService.invokeAcceptRide(requestId))
 
       if (result.accepted && result.ride_id) {
         const ride = await dbService.getRideById(result.ride_id)

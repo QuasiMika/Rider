@@ -3,6 +3,7 @@ import { dbService, realtimeService, functionsService } from '../services'
 import type { GuestRequestRow } from '../services'
 import type { Ride } from '../types/ride'
 import { DRIVER_SEARCH_TIMEOUT_MS, DRIVER_SEARCH_TIMEOUT_MESSAGE } from '../constants/driverSearch'
+import { withTimeout } from '../utils/withTimeout'
 
 type Status = 'idle' | 'waiting' | 'matched' | 'completed' | 'error'
 
@@ -187,7 +188,9 @@ export function useRideMatching(userId: string, role: 'driver' | 'guest'): UseRi
     try {
       const existing = await dbService.getWaitingGuestRequest(userId)
       if (!existing) {
-        await functionsService.invokeCreateRequest(pickupLocation, destination, passengerCount, rickshawTypeId)
+        await withTimeout(
+          functionsService.invokeCreateRequest(pickupLocation, destination, passengerCount, rickshawTypeId),
+        )
       }
       await loadPendingRequest()
     } catch (err) {

@@ -789,6 +789,17 @@
   font-weight: 500;
 }
 
+.rm-server-error {
+  font-size: 0.85rem;
+  color: #ef4444;
+  font-weight: 500;
+  background: color-mix(in srgb, #ef4444 10%, transparent);
+  border: 1px solid color-mix(in srgb, #ef4444 30%, transparent);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-top: 8px;
+}
+
 /* ─── Driver idle page ───────────────────────────────────── */
 .no-show-panel {
   display: flex;
