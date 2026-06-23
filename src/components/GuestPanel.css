@@ -790,7 +790,6 @@
 
 .addr-input-row .guest-route-card__input {
   flex: 1;
-  padding-right: 2rem;
 }
 
 .addr-input--confirmed {
@@ -798,12 +797,11 @@
 }
 
 .addr-check {
-  position: absolute;
-  right: 0.5rem;
   color: #38a169;
   font-size: 14px;
   font-weight: 700;
   pointer-events: none;
+  flex-shrink: 0;
 }
 
 .addr-spinner {

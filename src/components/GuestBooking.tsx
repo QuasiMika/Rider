@@ -38,6 +38,7 @@ export function GuestBooking({ onlineDrivers, isLoading, error, timeoutNotice, o
   const [destConfirmed, setDestConfirmed] = useState(false)
   const [locating, setLocating] = useState(false)
   const [locateError, setLocateError] = useState<string | null>(null)
+  const [passengerCount, setPassengerCount] = useState(1)
   const [rickshawTypes, setRickshawTypes] = useState<RickshawType[]>([])
   const [selectedRickshawTypeId, setSelectedRickshawTypeId] = useState<string | null>(null)
 
