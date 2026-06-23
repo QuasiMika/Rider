@@ -83,7 +83,6 @@ export function AddressInput({ placeholder, value, confirmed, onChange, onConfir
           aria-autocomplete="list"
           aria-expanded={open}
         />
-        {confirmed && <span className="addr-check" aria-label="Adresse bestätigt">✓</span>}
         {loading && !confirmed && <span className="addr-spinner" />}
         {rightSlot}
       </div>
