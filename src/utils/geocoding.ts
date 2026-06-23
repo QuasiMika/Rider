@@ -58,9 +58,12 @@ export async function searchAddresses(
   signal?: AbortSignal,
 ): Promise<AddressSuggestion[]> {
   if (!query.trim() || query.trim().length < 2) return []
-  return enqueue(async () => {
-    if (signal?.aborted) return []
-    const url = `${NOMINATIM}/search?q=${encodeURIComponent(query)}&format=json&limit=5&accept-language=de&viewbox=${KONSTANZ_VIEWBOX}&bounded=1`
+  if (signal?.aborted) return []
+  // Uses viewbox to bias results toward Konstanz but does not restrict strictly (no bounded=1)
+  // so that nearby addresses still appear. Bypasses the shared enqueue throttle because
+  // the caller (useAddressSearch) already debounces and manages its own abort controller.
+  const url = `${NOMINATIM}/search?q=${encodeURIComponent(query)}&format=json&limit=5&accept-language=de&viewbox=${KONSTANZ_VIEWBOX}&countrycodes=de`
+  try {
     const res = await fetch(url, signal ? { signal } : undefined)
     if (!res.ok) return []
     const data = await res.json()
@@ -68,5 +71,7 @@ export async function searchAddresses(
       displayName: item.display_name,
       coords: [parseFloat(item.lat), parseFloat(item.lon)] as LatLng,
     }))
-  })
+  } catch {
+    return []
+  }
 }
